@@ -19,11 +19,12 @@ def main():
     if not db_path:
         parser.error('Path to db is not given.')
         
-    logs = load_logs(db_path)
+    logs = load_logs(db_path, 1)
     parser = LogParser()
     for log_data in logs:
-        rounds = parser.get_game_rounds(log_data['log_content'])
-    
+        game = parser.get_game_hands(log_data['log_content'])
+        tenpai_players = parser.extract_tenpai_players(game)
+
 
 def load_logs(db_path, limit=10, offset=0):
     """
