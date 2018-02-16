@@ -14,6 +14,7 @@ class Table(object):
 
         self.dealer_seat = None
         self.current_hand = None
+        self.log_id = None
 
         self.players = []
 
@@ -23,7 +24,7 @@ class Table(object):
         self.dealer_seat = dealer_seat
         self.current_hand = current_hand
 
-        self.players = [Player(self) for x in range(0, 4)]
+        self.players = [Player(self, x) for x in range(0, 4)]
 
     def get_player(self, player_seat):
         return self.players[player_seat]

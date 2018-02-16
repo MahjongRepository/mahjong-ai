@@ -3,7 +3,7 @@
 
 class Player(object):
 
-    def __init__(self, table):
+    def __init__(self, table, seat):
         self.table = table
 
         self.tiles = []
@@ -11,6 +11,7 @@ class Player(object):
         self.waiting = []
         self.melds = []
         self.cost = 0
+        self.seat = seat
 
     def init_hand(self, tiles_string):
         tiles = [int(x) for x in tiles_string.split(',')]

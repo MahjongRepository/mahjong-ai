@@ -12,7 +12,7 @@ from parser.table import Table
 
 class LogParser(object):
 
-    def get_game_hands(self, log_content):
+    def get_game_hands(self, log_content, log_id):
         """
         XML parser was really slow here,
         so I built simple parser to separate log content on tags (grouped by hands)
@@ -20,6 +20,7 @@ class LogParser(object):
         tag_start = 0
         hands = []
         tag = None
+
         current_tags = []
 
         for x in range(0, len(log_content)):
@@ -48,6 +49,8 @@ class LogParser(object):
                     find = re.compile(r'shuffle="[^"]*"')
                     tag = find.sub('', tag)
 
+                    current_tags.append('<LOG_ID id="{}" />'.format(log_id))
+
                 # add processed tag to the hand
                 current_tags.append(tag)
                 tag = None
@@ -69,6 +72,9 @@ class LogParser(object):
             tenpai_player_seats = []
 
             for tag in hand:
+                if self._is_log_id(tag):
+                    table.log_id = self._get_attribute_content(tag, 'id')
+
                 if self._is_init_tag(tag):
                     seed = [int(x) for x in self._get_attribute_content(tag, 'seed').split(',')]
                     current_hand = seed[0]
@@ -210,6 +216,9 @@ class LogParser(object):
 
     def _is_agari_tag(self, tag):
         return tag and 'AGARI' in tag
+
+    def _is_log_id(self, tag):
+        return tag and 'LOG_ID' in tag
 
     def _is_meld_set(self, tag):
         return tag and '<N who=' in tag

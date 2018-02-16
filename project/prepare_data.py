@@ -1,9 +1,17 @@
 # -*- coding: utf-8 -*-
 import bz2
+import json
 import sqlite3
 from optparse import OptionParser
 
+import os
+
+from parser.exporter import JsonExporter
 from parser.parser import LogParser
+
+data_directory = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'visual', 'data')
+if not os.path.exists(data_directory):
+    os.mkdir(data_directory)
 
 
 def main():
@@ -18,12 +26,30 @@ def main():
     db_path = opts.path
     if not db_path:
         parser.error('Path to db is not given.')
-        
+
     logs = load_logs(db_path, 1)
     parser = LogParser()
     for log_data in logs:
-        game = parser.get_game_hands(log_data['log_content'])
+        game = parser.get_game_hands(log_data['log_content'], log_data['log_id'])
+
         tenpai_players = parser.extract_tenpai_players(game)
+        save_data(tenpai_players)
+
+
+def save_data(tenpai_players):
+    for player in tenpai_players:
+        file_name = '{}_{}_{}.json'.format(
+            player.table.log_id,
+            player.table.current_hand,
+            player.seat
+        )
+
+        file_path = os.path.join(data_directory, file_name)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+        with open(file_path, 'w') as f:
+            f.write(json.dumps(JsonExporter.export_player(player)))
 
 
 def load_logs(db_path, limit=10, offset=0):
