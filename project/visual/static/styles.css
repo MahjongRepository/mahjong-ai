@@ -1,0 +1,37 @@
+body {
+    background-color: #1f5d30;
+    padding: 40px;
+}
+
+p {
+    color: white;
+}
+
+.tile {
+    width: 40px;
+    height: 56px;
+    margin-right: 2px;
+}
+
+.tenbo {
+    width: 156px;
+    height: 12px;
+}
+
+.face {
+    fill: #e1e1e1;
+}
+
+.back {
+    fill: #ffba1e;
+}
+
+.rotate {
+    width: 56px;
+    height: 56px;
+    transform: rotate(-90deg) translate(-8px, 0);
+}
+
+#discards {
+    width: 280px;
+}
