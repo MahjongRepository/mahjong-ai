@@ -2,6 +2,7 @@
 import copy
 import re
 
+from mahjong.agari import Agari
 from mahjong.meld import Meld
 from mahjong.shanten import Shanten
 from mahjong.tile import TilesConverter
@@ -59,6 +60,7 @@ class LogParser(object):
 
     def extract_tenpai_players(self, game):
         shanten = Shanten()
+        agari = Agari()
 
         """
         In this method we will emulate played hands
@@ -92,12 +94,17 @@ class LogParser(object):
                     tile = self._parse_tile(tag)
                     player_seat = self._get_player_seat(tag)
 
-                    discard = Discard(tile, False, False, False)
+                    discard = Discard(tile, False, False, False, False)
                     table.get_player(player_seat).discard_tile(discard)
 
                     tiles_34 = TilesConverter.to_34_array(table.get_player(player_seat).tiles)
                     if shanten.calculate_shanten(tiles_34) == 0 and player_seat not in tenpai_player_seats:
                         tenpai_player_seats.append(player_seat)
+                        table.get_player(player_seat).set_waiting(
+                            self.get_waiting(table.get_player(player_seat), agari)
+                        )
+
+                        print(player_seat, table.current_hand, TilesConverter.to_one_line_string(table.get_player(player_seat).tiles))
 
                 if self._is_draw(tag):
                     tile = self._parse_tile(tag)
@@ -110,6 +117,7 @@ class LogParser(object):
                     table.get_player(meld.who).add_meld(meld)
 
             for player_seat in tenpai_player_seats:
+                print(tenpai_player_seats)
                 tenpai_players.append(copy.deepcopy(table.get_player(player_seat)))
 
         return tenpai_players
@@ -222,3 +230,13 @@ class LogParser(object):
 
     def _is_meld_set(self, tag):
         return tag and '<N who=' in tag
+
+    def get_waiting(self, player, agari):
+        tiles_34 = TilesConverter.to_34_array(player.tiles)
+        waiting = []
+        for j in range(0, 34):
+            tiles_34[j] += 1
+            if agari.is_agari(tiles_34):
+                waiting.append(j)
+            tiles_34[j] -= 1
+        return waiting

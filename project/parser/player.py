@@ -26,3 +26,6 @@ class Player(object):
 
     def add_meld(self, meld):
         self.melds.append(meld)
+
+    def set_waiting(self, waiting):
+        self.waiting = waiting

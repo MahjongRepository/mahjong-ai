@@ -13,7 +13,7 @@ class JsonExporter(object):
         discards = []
         for discard in player.discards:
             discards.append({
-                'tile': to_34(discard.tile)
+                'tile': to_34(discard.tile),
             })
 
         melds = []
@@ -24,9 +24,13 @@ class JsonExporter(object):
             })
 
         data = {
-            'hand': sorted([to_34(x) for x in player.tiles]),
+            'log_id': player.table.log_id,
+            'player_seat': player.seat,
+            'hand_number': player.table.current_hand,
+            'player_hand': sorted([to_34(x) for x in player.tiles]),
             'discards': discards,
-            'melds': melds
+            'melds': melds,
+            'waiting': player.waiting,
         }
 
         return data

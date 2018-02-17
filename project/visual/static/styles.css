@@ -3,7 +3,7 @@ body {
     padding: 40px;
 }
 
-p {
+p, a {
     color: white;
 }
 
