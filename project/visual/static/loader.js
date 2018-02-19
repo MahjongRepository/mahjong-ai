@@ -6,34 +6,98 @@ $(document).ready(function () {
         $.get(url, function (data) {
             var log_link = 'http://tenhou.net/0/?log=' + data['log_id'];
             log_link += '&tw=' + data['player_seat'];
-            log_link += '&ts=' + data['hand_number'];
+            log_link += '&ts=' + data['step'];
 
             $('#log_link').attr('href', log_link);
 
+            $('#round_wind').text(winds[data.round_wind]);
+            $('#player_wind').text(winds[data.player_wind]);
+
             var html = '';
             $.each(data['player_hand'], function (index, value) {
-                html += tile_template.replace('{placeholder}', tiles_map[value]);
+                html += tile_template.replace('{placeholder}', get_tile_name(value));
             });
             $('#hand').html(html);
 
             html = '';
+            $.each(data['dora_indicators'], function (index, value) {
+                html += tile_template.replace('{placeholder}', get_tile_name(value));
+            });
+            $('#dora').html(html);
+
+            html = '';
+            $.each(data['melds'], function (index, meld) {
+                html += '<div class="mr">';
+                $.each(meld['tiles'], function (index, value) {
+                    html += tile_template.replace('{placeholder}', get_tile_name(value));
+                });
+                html += '</div>';
+            });
+
+            if (html.length) {
+                $('#melds').show();
+                $('#melds_content').html(html);
+            }
+
+            html = '';
             $.each(data['waiting'], function (index, value) {
-                html += tile_template.replace('{placeholder}', tiles_map[value]);
+                html += '<div style="margin-bottom: 10px">';
+                html += tile_template.replace('{placeholder}', get_tile_name(value.tile));
+                if (value.han) {
+                    html += ' <span>' + value.han + ' han ' + value.fu + ' fu ' + '</span>';
+                    html += '<span>' + value.cost + '</span>';
+                } else {
+                    html += '<span>can\'t win</span>';
+                }
+
+                html += '</div>';
             });
             $('#waiting').html(html);
 
             html = '';
             $.each(data['discards'], function (index, value) {
-                html += tile_template.replace('{placeholder}', tiles_map[value.tile]);
+                var template = tile_template.replace('{placeholder}', get_tile_name(value.tile));
+
+                // player called riichi, let's rotate tile
+                if (index + 1 === data['discards'].length && data.after_riichi) {
+                    template = template.replace('{classes}', 'rotate');
+                }
+
+                if (value.after_meld) {
+                    template = template.replace('{classes}', 'after-meld');
+                }
+
+                html += template;
             });
             $('#discards').html(html);
-
-
         })
     }
 });
 
-var tile_template = '<svg class="tile"><use class="face" xlink:href="/static/tiles.svg#{placeholder}"></use></svg>';
+function get_tile_name(tile_136) {
+    if (tile_136 === 16) {
+        return 'man_aka'
+    }
+
+    if (tile_136 === 52) {
+        return 'pa'
+    }
+
+    if (tile_136 === 88) {
+        return 'sa'
+    }
+
+    return tiles_map[Math.floor(tile_136 / 4)]
+}
+
+var winds = {
+    27: '東',
+    28: '南',
+    29: '西',
+    30: '北'
+};
+
+var tile_template = '<svg class="tile {classes}"><use class="face" xlink:href="/static/tiles.svg#{placeholder}"></use></svg>';
 
 var tiles_map = {
     0: 'm1',

@@ -13,28 +13,29 @@ class JsonExporter(object):
         discards = []
         for discard in player.discards:
             discards.append({
-                'tile': to_34(discard.tile),
+                'tile': discard.tile,
+                'after_meld': discard.after_meld,
             })
 
         melds = []
         for meld in player.melds:
             melds.append({
                 'type': meld.type,
-                'tiles': [to_34(x) for x in meld.tiles]
+                'tiles': [x for x in meld.tiles]
             })
 
         data = {
+            'after_riichi': player.discards[-1].after_riichi,
             'log_id': player.table.log_id,
             'player_seat': player.seat,
-            'hand_number': player.table.current_hand,
-            'player_hand': sorted([to_34(x) for x in player.tiles]),
+            'step': player.table.step,
+            'round_wind': player.table.round_wind,
+            'player_wind': player.player_wind,
+            'player_hand': sorted([x for x in player.closed_hand]),
             'discards': discards,
+            'dora_indicators': player.table.dora_indicators,
             'melds': melds,
             'waiting': player.waiting,
         }
 
         return data
-
-
-def to_34(tile):
-    return tile // 4

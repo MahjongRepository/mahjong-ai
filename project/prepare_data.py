@@ -40,9 +40,10 @@ def save_data(tenpai_players):
     for player in tenpai_players:
         file_name = '{}_{}_{}.json'.format(
             player.table.log_id,
-            player.table.current_hand,
-            player.seat
+            player.seat,
+            player.table.step,
         )
+        print('http://127.0.0.1:8010/?hand={}'.format(file_name))
 
         file_path = os.path.join(data_directory, file_name)
         if os.path.exists(file_path):

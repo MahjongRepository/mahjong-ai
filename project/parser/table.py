@@ -1,30 +1,29 @@
 # -*- coding: utf-8 -*-
-from parser.player import Player
+from mahjong.constants import EAST, SOUTH, WEST, NORTH
 
-EAST = 27
-SOUTH = 28
-WEST = 29
-NORTH = 30
+from parser.player import Player
 
 
 class Table(object):
 
     def __init__(self):
-        self.dora = []
+        self.dora_indicators = []
 
         self.dealer_seat = None
         self.current_hand = None
+        self.step = None
         self.log_id = None
 
         self.players = []
 
-    def init(self, dealer_seat, current_hand, dora_indicator):
-        self.dora = [dora_indicator]
+    def init(self, dealer_seat, current_hand, dora_indicator, step):
+        self.dora_indicators = [dora_indicator]
 
         self.dealer_seat = dealer_seat
         self.current_hand = current_hand
+        self.step = step
 
-        self.players = [Player(self, x) for x in range(0, 4)]
+        self.players = [Player(self, x, dealer_seat) for x in range(0, 4)]
 
     def get_player(self, player_seat):
         return self.players[player_seat]

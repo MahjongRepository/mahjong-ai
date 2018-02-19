@@ -1,9 +1,10 @@
 body {
     background-color: #1f5d30;
     padding: 40px;
+    color: white;
 }
 
-p, a {
+a {
     color: white;
 }
 
@@ -19,11 +20,24 @@ p, a {
 }
 
 .face {
-    fill: #e1e1e1;
+    fill: #ebebeb;
 }
 
 .back {
     fill: #ffba1e;
+}
+
+.after-meld .face {
+    fill: #d0ffe4;
+}
+
+.winds {
+    font-size: 20px;
+}
+
+.mr {
+    margin-right: 15px;
+    display: inline-block;
 }
 
 .rotate {
