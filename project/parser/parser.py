@@ -140,7 +140,9 @@ class LogParser(object):
 
                     # for closed kan we had to remove tile from hand
                     if meld.type == Meld.KAN and not meld.opened:
-                        player.tiles.remove(meld.called_tile)
+                        # in riichi we will not have tile in hand
+                        if meld.called_tile in player.tiles:
+                            player.tiles.remove(meld.called_tile)
 
                     called_meld.append(meld.who)
 
