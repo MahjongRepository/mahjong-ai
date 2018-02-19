@@ -130,8 +130,11 @@ class LogParser(object):
 
                 if self._is_meld_set(tag):
                     meld = self._parse_meld(tag)
-                    table.get_player(meld.who).add_meld(meld)
-                    table.get_player(meld.who).draw_tile(meld.called_tile)
+                    player = table.get_player(meld.who)
+                    player.add_meld(meld)
+
+                    if meld.type != Meld.CHANKAN and meld.type != Meld.KAN:
+                        player.draw_tile(meld.called_tile)
 
                     called_meld.append(meld.who)
 
@@ -263,7 +266,7 @@ class LogParser(object):
     def _get_waiting(self, player):
         tiles = player.closed_hand
         if len(tiles) == 1:
-            return tiles[0] // 4
+            return [tiles[0] // 4]
 
         tiles_34 = TilesConverter.to_34_array(tiles)
 
