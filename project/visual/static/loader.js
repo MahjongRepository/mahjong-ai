@@ -67,6 +67,10 @@ $(document).ready(function () {
                     template = template.replace('{classes}', 'after-meld');
                 }
 
+                if (value.is_tsumogiri) {
+                    template = template.replace('{classes}', 'tsumogiri');
+                }
+
                 html += template;
             });
             $('#discards').html(html);

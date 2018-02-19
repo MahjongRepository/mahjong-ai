@@ -20,7 +20,7 @@ a {
 }
 
 .face {
-    fill: #ebebeb;
+    fill: #f2f2f2;
 }
 
 .back {
@@ -29,6 +29,10 @@ a {
 
 .after-meld .face {
     fill: #d0ffe4;
+}
+
+.tsumogiri .face {
+    fill: #bbbbbb;
 }
 
 .winds {

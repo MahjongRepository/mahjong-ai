@@ -15,6 +15,7 @@ class JsonExporter(object):
             discards.append({
                 'tile': discard.tile,
                 'after_meld': discard.after_meld,
+                'is_tsumogiri': discard.is_tsumogiri,
             })
 
         melds = []
