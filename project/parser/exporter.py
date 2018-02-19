@@ -22,7 +22,8 @@ class JsonExporter(object):
         for meld in player.melds:
             melds.append({
                 'type': meld.type,
-                'tiles': [x for x in meld.tiles]
+                'tiles': [x for x in meld.tiles],
+                'opened': meld.opened,
             })
 
         data = {

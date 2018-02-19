@@ -133,8 +133,14 @@ class LogParser(object):
                     player = table.get_player(meld.who)
                     player.add_meld(meld)
 
+                    # for open kan and chankan
+                    # we not need to add tile in hand
                     if meld.type != Meld.CHANKAN and meld.type != Meld.KAN:
                         player.draw_tile(meld.called_tile)
+
+                    # for closed kan we had to remove tile from hand
+                    if meld.type == Meld.KAN and not meld.opened:
+                        player.tiles.remove(meld.called_tile)
 
                     called_meld.append(meld.who)
 

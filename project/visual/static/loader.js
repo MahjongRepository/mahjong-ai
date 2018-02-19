@@ -27,10 +27,19 @@ $(document).ready(function () {
 
             html = '';
             $.each(data['melds'], function (index, meld) {
+                var tiles = meld['tiles'];
+
                 html += '<div class="mr">';
-                $.each(meld['tiles'], function (index, value) {
-                    html += tile_template.replace('{placeholder}', get_tile_name(value));
+                $.each(tiles, function (index, value) {
+                    if (!meld.opened && (index === 0 || index === 3)) {
+                        var template = tile_template.replace('{placeholder}', get_tile_name(-1));
+                        template = template.replace('face', 'back');
+                    } else {
+                        var template = tile_template.replace('{placeholder}', get_tile_name(value));
+                    }
+                    html += template
                 });
+
                 html += '</div>';
             });
 
@@ -79,6 +88,10 @@ $(document).ready(function () {
 });
 
 function get_tile_name(tile_136) {
+    if (tile_136 === -1) {
+        return 'tile'
+    }
+
     if (tile_136 === 16) {
         return 'ma'
     }
