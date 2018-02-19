@@ -272,6 +272,11 @@ class LogParser(object):
 
         waiting = []
         for j in range(0, 34):
+            # we already have 4 tiles in hand
+            # and we can't wait on 5th
+            if tiles_34[j] == 4:
+                continue
+
             tiles_34[j] += 1
             if self.agari.is_agari(tiles_34):
                 waiting.append(j)
