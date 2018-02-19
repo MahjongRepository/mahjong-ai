@@ -47,7 +47,7 @@ $(document).ready(function () {
                     html += ' <span>' + value.han + ' han ' + value.fu + ' fu ' + '</span>';
                     html += '<span>' + value.cost + '</span>';
                 } else {
-                    html += '<span>can\'t win</span>';
+                    html += ' <span>can\'t win</span>';
                 }
 
                 html += '</div>';
