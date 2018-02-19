@@ -259,7 +259,11 @@ class LogParser(object):
         return tag and 'REACH ' in tag
 
     def _get_waiting(self, player):
-        tiles_34 = TilesConverter.to_34_array(player.tiles)
+        tiles = player.closed_hand
+        if len(tiles) == 1:
+            return tiles[0] // 4
+
+        tiles_34 = TilesConverter.to_34_array(tiles)
 
         waiting = []
         for j in range(0, 34):
