@@ -76,7 +76,7 @@ $(document).ready(function () {
 
 function get_tile_name(tile_136) {
     if (tile_136 === 16) {
-        return 'man_aka'
+        return 'ma'
     }
 
     if (tile_136 === 52) {

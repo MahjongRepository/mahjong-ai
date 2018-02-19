@@ -27,7 +27,7 @@ def main():
     if not db_path:
         parser.error('Path to db is not given.')
 
-    logs = load_logs(db_path, 1)
+    logs = load_logs(db_path, 10)
     parser = LogParser()
     for log_data in logs:
         game = parser.get_game_hands(log_data['log_content'], log_data['log_id'])
