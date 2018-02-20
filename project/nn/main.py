@@ -54,6 +54,39 @@ def parse_logs(path, input_raw, output_raw):
             continue
 
 
+def print_predictions(model, test_input, test_output):
+    predictions = model.predict(test_input, verbose=1)
+    print("predictions shape = ", predictions.shape)
+
+    i = 0
+    for prediction in predictions:
+        hand = []
+        waits = []
+        pred = []
+        j = 0
+        for prob in prediction:
+            # TODO: 0.1?
+            if prob > 0.1:
+                pred.append(j)
+            j += 1
+        j = 0
+        for inp in test_input[i]:
+            if inp > 0.01:
+                hand.append(j)
+            j += 1
+        j = 0
+        for out in test_output[i]:
+            if out > 0.01:
+                waits.append(j)
+            j += 1
+
+        print("i =", i)
+        print("hand:", hand)
+        print("waits:", waits)
+        print("preds:", pred)
+        i += 1
+
+
 def main():
     parser = OptionParser()
 
@@ -107,8 +140,10 @@ def main():
 
     model.fit(train_input, train_output, epochs=20, batch_size=512)
 
-    results = model.evaluate(test_input, test_output)
+    results = model.evaluate(test_input, test_output, verbose=1)
     print("results [loss, acc] =", results)
+
+    print_predictions(model, test_input, test_output)
 
 
 if __name__ == '__main__':
