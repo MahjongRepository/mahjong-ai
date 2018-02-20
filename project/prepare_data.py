@@ -4,6 +4,7 @@ import csv
 import json
 import random
 import sqlite3
+import datetime
 from optparse import OptionParser
 
 import os
@@ -71,18 +72,22 @@ def main():
                 writer.writerow(CSVExporter.header())
 
     processed = 0
+    processed_tenpais = 0
     count_of_logs = len(logs)
     print('Starting processing...')
-    print('Total logs: {}'.format(count_of_logs))
     
     for log_data in logs:
         if processed % 1000 == 0:
+            print('')
+            print(get_date_string())
             print('Processed logs: {}/{}'.format(processed, count_of_logs))
+            print('With {} hands'.format(processed_tenpais))
         
         game = parser.get_game_hands(log_data['log_content'], log_data['log_id'])
 
         try:
             tenpai_players = parser.extract_tenpai_players(game)
+            processed_tenpais += len(tenpai_players)
         except Exception as e:
             print(e)
             print("Failed to process log: {}".format(log_data['log_id']))
@@ -151,6 +156,10 @@ def load_logs(db_path, limit):
         })
         
     return results
+
+
+def get_date_string():
+    return datetime.datetime.now().strftime('%H:%M:%S')
 
 
 if __name__ == '__main__':
