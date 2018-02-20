@@ -22,7 +22,8 @@ import matplotlib.pyplot as plt
 # 3 - discard after meld
 # 4 - used in open set
 states_num = 1
-tiles_num = 136
+tiles_unique = 34
+tiles_num = tiles_unique * 4
 
 model_path = 'model.h5'
 
@@ -48,9 +49,9 @@ def load_data(path):
 
                 input_data.append(tiles)
 
-                waiting = [0 for x in range(tiles_num)]
+                waiting = [0 for x in range(tiles_unique)]
                 for wait in waiting_data:
-                    waiting[wait] = 1
+                    waiting[wait // 4] = 1
 
                 output_data.append(waiting)
 
@@ -72,12 +73,12 @@ def print_predictions(model, test_input, test_output):
         j = 0
         for prob in prediction:
             if prob > 0.8:
-                pred_sure.append(j)
-            elif prob > 0.6:
-                pred_unsure.append(j)
+                pred_sure.append(j * 4)
+            elif prob > 0.5:
+                pred_unsure.append(j * 4)
 
-            if prob > 0.6:
-                pred.append(j)
+            if prob > 0.5:
+                pred.append(j * 4)
 
             j += 1
         j = 0
@@ -88,7 +89,7 @@ def print_predictions(model, test_input, test_output):
         j = 0
         for out in test_output[i]:
             if out > 0.01:
-                waits.append(j)
+                waits.append(j * 4)
             j += 1
 
         if (set(waits) != set(pred)):
@@ -199,9 +200,9 @@ def main():
 
     if not os.path.exists(model_path):
         model = models.Sequential()
-        model.add(layers.Dense(512, activation='relu', input_shape=(tiles_num * states_num,)))
-        model.add(layers.Dense(512, activation='relu'))
-        model.add(layers.Dense(tiles_num, activation='sigmoid'))
+        model.add(layers.Dense(1024, activation='relu', input_shape=(tiles_num * states_num,)))
+        model.add(layers.Dense(1024, activation='relu'))
+        model.add(layers.Dense(tiles_unique, activation='sigmoid'))
 
         model.compile(optimizer='rmsprop',
                       loss='binary_crossentropy',
