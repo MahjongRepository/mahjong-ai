@@ -13,7 +13,7 @@ class CSVExporter(object):
     @staticmethod
     def export_player(player):
         data = [
-            ','.join([str(x) for x in player.tiles]),
+            ','.join([str(x) for x in player.closed_hand]),
             ','.join([str(x['tile']) for x in player.waiting]),
         ]
         return data
