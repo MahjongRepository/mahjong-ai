@@ -7,10 +7,13 @@ from optparse import OptionParser
 
 from keras import models
 from keras import layers
+from keras.models import load_model
 
 import numpy as np
 
 from mahjong.tile import TilesConverter
+
+import matplotlib.pyplot as plt
 
 # states:
 # 0 - unknown
@@ -18,8 +21,6 @@ from mahjong.tile import TilesConverter
 # 2 - discard from hand
 # 3 - discard after meld
 # 4 - used in open set
-from keras.models import load_model
-
 states_num = 1
 tiles_num = 136
 
@@ -68,18 +69,14 @@ def print_predictions(model, test_input, test_output):
         pred = []
         pred_sure = []
         pred_unsure = []
-        pred_unlikely = []
         j = 0
         for prob in prediction:
-            # TODO: adjust
             if prob > 0.8:
                 pred_sure.append(j)
-            elif prob > 0.4:
+            elif prob > 0.6:
                 pred_unsure.append(j)
-            elif prob > 0.1:
-                pred_unlikely.append(j)
 
-            if prob > 0.1:
+            if prob > 0.6:
                 pred.append(j)
 
             j += 1
@@ -101,7 +98,6 @@ def print_predictions(model, test_input, test_output):
             print("pred:", TilesConverter.to_one_line_string(pred))
             print("pred_sure:", TilesConverter.to_one_line_string(pred_sure))
             print("pred_unsure:", TilesConverter.to_one_line_string(pred_unsure))
-            print("pred_unlikely:", TilesConverter.to_one_line_string(pred_unlikely))
             wrong_predictions += 1
 
         i += 1
@@ -111,6 +107,30 @@ def print_predictions(model, test_input, test_output):
     print("Predictions: total = %d, correct = %d, wrong = %d"
           % (i, correct_predictions, wrong_predictions))
     print("%% correct: %f" % (correct_predictions * 1.0 / i))
+
+
+def plot_history(history):
+    loss = history.history['loss']
+    val_loss = history.history['val_loss']
+    epochs = range(1, len(loss) + 1)
+    plt.plot(epochs, loss, 'bo', label='Training loss')
+    plt.plot(epochs, val_loss, 'b', label='Validation loss')
+    plt.title('Training and validation loss')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.show()
+
+    plt.clf()
+    acc = history.history['acc']
+    val_acc = history.history['val_acc']
+    plt.plot(epochs, acc, 'bo', label='Training acc')
+    plt.plot(epochs, val_acc, 'b', label='Validation acc')
+    plt.title('Training and validation accuracy')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.show()
 
 
 def main():
@@ -127,13 +147,21 @@ def main():
     parser.add_option('-p',
                       '--print_predictions',
                       action='store_true',
-                      help='Print trained nn predictions on test data')
+                      help='Print trained nn predictions on test data',
+                      default=False)
 
     parser.add_option('-r',
                       '--rebuild',
                       action='store_true',
                       help='Do we need to rebuild model or not',
                       default=False)
+
+    parser.add_option('-v',
+                      '--visualize',
+                      action='store_true',
+                      help='Show model fitting history visualisation',
+                      default=False)
+
 
     opts, _ = parser.parse_args()
 
@@ -145,7 +173,8 @@ def main():
     if not test_logs_path:
         parser.error('Path to test logs is not given.')
 
-    print_predictions_flag = opts.print_predictions
+    need_print_predictions = opts.print_predictions
+    need_visualize_history = opts.visualize
     rebuild = opts.rebuild
 
     train_input_raw, train_output_raw = load_data(train_logs_path)
@@ -172,15 +201,22 @@ def main():
         model = models.Sequential()
         model.add(layers.Dense(512, activation='relu', input_shape=(tiles_num * states_num,)))
         model.add(layers.Dense(512, activation='relu'))
-        model.add(layers.Dense(tiles_num, activation='softmax'))
+        model.add(layers.Dense(tiles_num, activation='sigmoid'))
 
         model.compile(optimizer='rmsprop',
                       loss='binary_crossentropy',
                       metrics=['accuracy'])
 
-        model.fit(train_input, train_output, epochs=50, batch_size=512)
+        history = model.fit(train_input,
+                            train_output,
+                            epochs=20,
+                            batch_size=512,
+                            validation_data=(test_input, test_output))
 
         model.save(model_path)
+
+        if need_visualize_history:
+            plot_history(history)
     else:
         print('Loading already existing model.')
         model = load_model(model_path)
@@ -188,7 +224,7 @@ def main():
     results = model.evaluate(test_input, test_output, verbose=1)
     print("results [loss, acc] =", results)
 
-    if print_predictions_flag:
+    if need_print_predictions:
         print_predictions(model, test_input, test_output)
 
 
