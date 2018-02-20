@@ -5,11 +5,6 @@ class JsonExporter(object):
 
     @staticmethod
     def export_player(player):
-        """
-        Let's export tiles in 34 tile format.
-        It will allow to build more clear predictions.
-        """
-
         discards = []
         for discard in player.discards:
             discards.append({
