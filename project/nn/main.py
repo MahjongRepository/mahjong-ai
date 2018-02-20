@@ -98,6 +98,11 @@ def main():
                       type='string',
                       help='Path to folder with test logs')
 
+    parser.add_option('-p',
+                      '--print_predictions',
+                      action='store_true',
+                      help='Print trained nn predictions on test data')
+
     opts, _ = parser.parse_args()
 
     train_logs_path = opts.train_path
@@ -107,6 +112,8 @@ def main():
     test_logs_path = opts.test_path
     if not test_logs_path:
         parser.error('Path to test logs is not given.')
+
+    print_predictions_flag = opts.print_predictions
 
     parse_logs(train_logs_path, train_input_raw, train_output_raw)
     parse_logs(test_logs_path, test_input_raw, test_output_raw)
@@ -143,7 +150,8 @@ def main():
     results = model.evaluate(test_input, test_output, verbose=1)
     print("results [loss, acc] =", results)
 
-    print_predictions(model, test_input, test_output)
+    if print_predictions_flag is True:
+        print_predictions(model, test_input, test_output)
 
 
 if __name__ == '__main__':
