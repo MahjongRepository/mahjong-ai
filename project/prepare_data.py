@@ -81,7 +81,12 @@ def main():
         
         game = parser.get_game_hands(log_data['log_content'], log_data['log_id'])
 
-        tenpai_players = parser.extract_tenpai_players(game)
+        try:
+            tenpai_players = parser.extract_tenpai_players(game)
+        except Exception as e:
+            print(e)
+            print("Failed to process log: {}".format(log_data['log_id']))
+            tenpai_players = []
         
         if export_format == 'json':
             save_json_data(tenpai_players)
