@@ -2,3 +2,5 @@ mahjong==1.1.1
 
 tensorflow-gpu==1.5.0
 pandas==0.22.0
+
+Keras==2.1.4

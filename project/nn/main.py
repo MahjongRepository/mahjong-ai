@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-
-import os
-import json
+import csv
 
 from optparse import OptionParser
 
@@ -19,39 +17,35 @@ import numpy as np
 states_num = 1
 tiles_num = 136
 
-train_input_raw = []
-train_output_raw = []
-test_input_raw = []
-test_output_raw = []
 
+def load_data(path):
+    input_data = []
+    output_data = []
 
-def parse_logs(path, input_raw, output_raw):
-    for filename in os.listdir(path):
-        if filename.endswith(".json"):
-            log_path = os.path.join(path, filename)
-            with open(log_path) as log_file:
-                json_data = json.load(log_file)
-                for key, value in json_data.items():
-                    # TODO: This is the first experiment - given hand,
-                    # find wait.
-                    # But actually we should give full info here, discards,
-                    # etc.
-                    if key.startswith("player_hand"):
-                        tiles = [0 for x in range(tiles_num * states_num)]
-                        for i in range(len(value)):
-                            # TODO: 0 here because we don't use states yet
-                            tiles[0 * tiles_num + value[i]] = 1
-                        input_raw.append(tiles)
-                    if key.startswith("waiting"):
-                        waits = [0 for x in range(tiles_num)]
-                        for i in range(len(value)):
-                            for k, v in value[i].items():
-                                if k.startswith("tile"):
-                                    waits[v] = 1
-                        output_raw.append(waits)
-            continue
-        else:
-            continue
+    with open(path, 'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            # TODO: Sometimes we can find here empty waiting. It is a bug in parser
+            if row['waiting'] and row['player_hand']:
+                # TODO: This is the first experiment - given hand, find wait.
+                # But actually we should give full info here, discards, etc.
+                player_hand = [int(x) for x in row['player_hand'].split(',')]
+                waiting_data = [int(x) for x in row['waiting'].split(',')]
+
+                tiles = [0 for x in range(tiles_num * states_num)]
+                for i in range(len(player_hand)):
+                    # TODO: 0 here because we don't use states yet
+                    tiles[0 * tiles_num + player_hand[i]] = 1
+
+                input_data.append(tiles)
+
+                waiting = [0 for x in range(tiles_num)]
+                for wait in waiting_data:
+                    waiting[wait] = 1
+
+                output_data.append(waiting)
+
+    return input_data, output_data
 
 
 def print_predictions(model, test_input, test_output):
@@ -92,11 +86,11 @@ def main():
 
     parser.add_option('--train_path',
                       type='string',
-                      help='Path to folder with train logs')
+                      help='Path to .csv with train data')
 
     parser.add_option('--test_path',
                       type='string',
-                      help='Path to folder with test logs')
+                      help='Path to .csv with test data')
 
     parser.add_option('-p',
                       '--print_predictions',
@@ -115,16 +109,10 @@ def main():
 
     print_predictions_flag = opts.print_predictions
 
-    parse_logs(train_logs_path, train_input_raw, train_output_raw)
-    parse_logs(test_logs_path, test_input_raw, test_output_raw)
+    train_input_raw, train_output_raw = load_data(train_logs_path)
+    test_input_raw, test_output_raw = load_data(test_logs_path)
 
-    print("Train data size = %d, test data size = %d"
-          % (len(train_input_raw), len(test_input_raw)))
-
-    if (len(train_input_raw) != len(train_output_raw)) \
-            or (len(test_input_raw) != len(test_output_raw)):
-        print("Bad json file")
-        return 1
+    print("Train data size = %d, test data size = %d" % (len(train_input_raw), len(test_input_raw)))
 
     train_samples = len(train_input_raw)
     test_samples = len(test_input_raw)
