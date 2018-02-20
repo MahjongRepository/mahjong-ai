@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import csv
 import os
+import time
 
 from optparse import OptionParser
 
@@ -8,6 +9,8 @@ from keras import models
 from keras import layers
 
 import numpy as np
+
+from mahjong.tile import TilesConverter
 
 # states:
 # 0 - unknown
@@ -58,15 +61,27 @@ def print_predictions(model, test_input, test_output):
     print("predictions shape = ", predictions.shape)
 
     i = 0
+    wrong_predictions = 0
     for prediction in predictions:
         hand = []
         waits = []
         pred = []
+        pred_sure = []
+        pred_unsure = []
+        pred_unlikely = []
         j = 0
         for prob in prediction:
-            # TODO: 0.1?
+            # TODO: adjust
+            if prob > 0.8:
+                pred_sure.append(j)
+            elif prob > 0.4:
+                pred_unsure.append(j)
+            elif prob > 0.1:
+                pred_unlikely.append(j)
+
             if prob > 0.1:
                 pred.append(j)
+
             j += 1
         j = 0
         for inp in test_input[i]:
@@ -79,11 +94,23 @@ def print_predictions(model, test_input, test_output):
                 waits.append(j)
             j += 1
 
-        print("i =", i)
-        print("hand:", hand)
-        print("waits:", waits)
-        print("preds:", pred)
+        if (set(waits) != set(pred)):
+            print("wrong prediction on i =", i)
+            print("hand:", TilesConverter.to_one_line_string(hand))
+            print("waits:", TilesConverter.to_one_line_string(waits))
+            print("pred:", TilesConverter.to_one_line_string(pred))
+            print("pred_sure:", TilesConverter.to_one_line_string(pred_sure))
+            print("pred_unsure:", TilesConverter.to_one_line_string(pred_unsure))
+            print("pred_unlikely:", TilesConverter.to_one_line_string(pred_unlikely))
+            wrong_predictions += 1
+
         i += 1
+
+    correct_predictions = i - wrong_predictions
+
+    print("Predictions: total = %d, correct = %d, wrong = %d"
+          % (i, correct_predictions, wrong_predictions))
+    print("%% correct: %f" % (correct_predictions * 1.0 / i))
 
 
 def main():
@@ -150,7 +177,7 @@ def main():
                       loss='binary_crossentropy',
                       metrics=['accuracy'])
 
-        model.fit(train_input, train_output, epochs=20, batch_size=512)
+        model.fit(train_input, train_output, epochs=50, batch_size=512)
 
         model.save(model_path)
     else:
