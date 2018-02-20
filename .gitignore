@@ -2,3 +2,5 @@ env
 .idea
 project/data
 project/visual/data
+
+model.h5

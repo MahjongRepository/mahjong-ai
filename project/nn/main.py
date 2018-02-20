@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import csv
+import os
 
 from optparse import OptionParser
 
@@ -14,8 +15,12 @@ import numpy as np
 # 2 - discard from hand
 # 3 - discard after meld
 # 4 - used in open set
+from keras.models import load_model
+
 states_num = 1
 tiles_num = 136
+
+model_path = 'model.h5'
 
 
 def load_data(path):
@@ -97,6 +102,12 @@ def main():
                       action='store_true',
                       help='Print trained nn predictions on test data')
 
+    parser.add_option('-r',
+                      '--rebuild',
+                      action='store_true',
+                      help='Do we need to rebuild model or not',
+                      default=False)
+
     opts, _ = parser.parse_args()
 
     train_logs_path = opts.train_path
@@ -108,6 +119,7 @@ def main():
         parser.error('Path to test logs is not given.')
 
     print_predictions_flag = opts.print_predictions
+    rebuild = opts.rebuild
 
     train_input_raw, train_output_raw = load_data(train_logs_path)
     test_input_raw, test_output_raw = load_data(test_logs_path)
@@ -125,20 +137,30 @@ def main():
     train_input = train_input.reshape((train_samples, tiles_num * states_num))
     test_input = test_input.reshape((test_samples, tiles_num * states_num))
 
-    model = models.Sequential()
-    model.add(layers.Dense(512, activation='relu', input_shape=(tiles_num * states_num,)))
-    model.add(layers.Dense(tiles_num, activation='softmax'))
+    if rebuild and os.path.exists(model_path):
+        print('Delete old model')
+        os.remove(model_path)
 
-    model.compile(optimizer='rmsprop',
-                  loss='binary_crossentropy',
-                  metrics=['accuracy'])
+    if not os.path.exists(model_path):
+        model = models.Sequential()
+        model.add(layers.Dense(512, activation='relu', input_shape=(tiles_num * states_num,)))
+        model.add(layers.Dense(tiles_num, activation='softmax'))
 
-    model.fit(train_input, train_output, epochs=20, batch_size=512)
+        model.compile(optimizer='rmsprop',
+                      loss='binary_crossentropy',
+                      metrics=['accuracy'])
+
+        model.fit(train_input, train_output, epochs=20, batch_size=512)
+
+        model.save(model_path)
+    else:
+        print('Loading already existing model.')
+        model = load_model(model_path)
 
     results = model.evaluate(test_input, test_output, verbose=1)
     print("results [loss, acc] =", results)
 
-    if print_predictions_flag is True:
+    if print_predictions_flag:
         print_predictions(model, test_input, test_output)
 
 
