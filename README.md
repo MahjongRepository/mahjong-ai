@@ -22,11 +22,7 @@ We need it to be sure that our parsing is working fine.
 # Neural network testing:
 
 1. `cd project/nn/`
-2. `python main.py --train_path <path_to_training>.csv --test_path <path_to_testing>.csv`
-
-Training logs are the logs in .csv that will be used for model training.
-
-Testing logs are the logs in .csv that will be used for model testing.
+2. `python main.py --train_path <path_to_training>.csv`
 
 # Visualisation
 
