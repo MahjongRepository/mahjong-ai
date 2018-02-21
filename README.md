@@ -24,7 +24,7 @@ We need it to be sure that our parsing is working fine.
 ## Guess waits in own hand
 
 1. `cd project/nn/`
-2. `python own_hand_waits.py --train_path <path_to_training>.csv` [-p] [-r] [-v]
+2. `python own_hand_waits.py --train_path <path_to_training>.csv [-p] [-r] [-v]`
 
 `-r` - train model anew instead of trying to read saved model from file
 
