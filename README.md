@@ -21,8 +21,16 @@ We need it to be sure that our parsing is working fine.
 
 # Neural network testing:
 
+## Guess waits in own hand
+
 1. `cd project/nn/`
-2. `python main.py --train_path <path_to_training>.csv`
+2. `python own_hand_waits.py --train_path <path_to_training>.csv` [-p] [-r] [-v]
+
+`-r` - train model anew instead of trying to read saved model from file
+
+`-v` - visualize loss and accuracy on training and validation data for all training epochs
+
+`-p` - check NN guesses and print all mistakes
 
 # Visualisation
 
@@ -30,6 +38,3 @@ We need it to be sure that our parsing is working fine.
 2. `sh start_server.sh`
 
 It will run local http server and after this you will be able to check results of .json exporter work.
-
-
-
