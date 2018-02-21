@@ -80,77 +80,87 @@ class LogParser(object):
             added_players = {}
             called_meld = []
 
-            for tag in hand:
-                if self._is_log_id(tag):
-                    table.log_id = self._get_attribute_content(tag, 'id')
+            log_id = None
 
-                if self._is_init_tag(tag):
-                    seed = [int(x) for x in self._get_attribute_content(tag, 'seed').split(',')]
-                    current_hand = seed[0]
-                    dora_indicator = seed[5]
-                    dealer_seat = int(self._get_attribute_content(tag, 'oya'))
+            try:
+                for tag in hand:
+                    if self._is_log_id(tag):
+                        log_id = self._get_attribute_content(tag, 'id')
+                        table.log_id = log_id
 
-                    table.init(dealer_seat, current_hand, dora_indicator, step)
+                    if self._is_init_tag(tag):
+                        seed = [int(x) for x in self._get_attribute_content(tag, 'seed').split(',')]
+                        current_hand = seed[0]
+                        dora_indicator = seed[5]
+                        dealer_seat = int(self._get_attribute_content(tag, 'oya'))
 
-                    table.get_player(0).init_hand(self._get_attribute_content(tag, 'hai0'))
-                    table.get_player(1).init_hand(self._get_attribute_content(tag, 'hai1'))
-                    table.get_player(2).init_hand(self._get_attribute_content(tag, 'hai2'))
-                    table.get_player(3).init_hand(self._get_attribute_content(tag, 'hai3'))
+                        table.init(dealer_seat, current_hand, dora_indicator, step)
 
-                    step += 1
+                        table.get_player(0).init_hand(self._get_attribute_content(tag, 'hai0'))
+                        table.get_player(1).init_hand(self._get_attribute_content(tag, 'hai1'))
+                        table.get_player(2).init_hand(self._get_attribute_content(tag, 'hai2'))
+                        table.get_player(3).init_hand(self._get_attribute_content(tag, 'hai3'))
 
-                if self._is_discard(tag):
-                    tile = self._parse_tile(tag)
-                    player_seat = self._get_player_seat(tag)
-                    player = table.get_player(player_seat)
+                        step += 1
 
-                    after_meld = player_seat in called_meld
-                    if after_meld:
-                        called_meld = []
+                    if self._is_discard(tag):
+                        tile = self._parse_tile(tag)
+                        player_seat = self._get_player_seat(tag)
+                        player = table.get_player(player_seat)
 
-                    is_tsumogiri = tile == player.tiles[-1]
+                        after_meld = player_seat in called_meld
+                        if after_meld:
+                            called_meld = []
 
-                    discard = Discard(tile, is_tsumogiri, after_meld, False, False)
-                    player.discard_tile(discard)
+                        is_tsumogiri = tile == player.tiles[-1]
 
-                    # for now let's work only with hand state in moment of first tenpai
-                    if player_seat not in added_players:
-                        tiles_34 = TilesConverter.to_34_array(player.tiles)
-                        melds_34 = player.melds_34
-                        if self.shanten.calculate_shanten(tiles_34, melds_34) == 0:
-                            player.set_waiting(self._get_waiting(table.get_player(player_seat)))
+                        discard = Discard(tile, is_tsumogiri, after_meld, False, False)
+                        player.discard_tile(discard)
 
-                            added_players[player_seat] = copy.deepcopy(player)
+                        # for now let's work only with hand state in moment of first tenpai
+                        if player_seat not in added_players:
+                            tiles_34 = TilesConverter.to_34_array(player.tiles)
+                            melds_34 = player.melds_34
+                            if self.shanten.calculate_shanten(tiles_34, melds_34) == 0:
+                                player.set_waiting(self._get_waiting(table.get_player(player_seat)))
 
-                if self._is_draw(tag):
-                    tile = self._parse_tile(tag)
-                    player_seat = self._get_player_seat(tag)
+                                added_players[player_seat] = copy.deepcopy(player)
 
-                    table.get_player(player_seat).draw_tile(tile)
+                    if self._is_draw(tag):
+                        tile = self._parse_tile(tag)
+                        player_seat = self._get_player_seat(tag)
 
-                if self._is_meld_set(tag):
-                    meld = self._parse_meld(tag)
-                    player = table.get_player(meld.who)
-                    player.add_meld(meld)
+                        table.get_player(player_seat).draw_tile(tile)
 
-                    # for open kan and chankan
-                    # we not need to add tile in hand
-                    if meld.type != Meld.CHANKAN and meld.type != Meld.KAN:
-                        player.draw_tile(meld.called_tile)
+                    if self._is_meld_set(tag):
+                        meld = self._parse_meld(tag)
+                        player = table.get_player(meld.who)
+                        player.add_meld(meld)
 
-                    # for closed kan we had to remove tile from hand
-                    if meld.type == Meld.KAN and not meld.opened:
-                        # in riichi we will not have tile in hand
-                        if meld.called_tile in player.tiles:
-                            player.tiles.remove(meld.called_tile)
+                        # for open kan and chankan
+                        # we not need to add tile in hand
+                        if meld.type != Meld.CHANKAN and meld.type != Meld.KAN:
+                            player.draw_tile(meld.called_tile)
 
-                    called_meld.append(meld.who)
+                        # for closed kan we had to remove tile from hand
+                        if meld.type == Meld.KAN and not meld.opened:
+                            # in riichi we will not have tile in hand
+                            if meld.called_tile in player.tiles:
+                                player.tiles.remove(meld.called_tile)
 
-                if self._is_riichi(tag):
-                    riichi_step = int(self._get_attribute_content(tag, 'step'))
-                    who = int(self._get_attribute_content(tag, 'who'))
-                    if riichi_step == 2:
-                        added_players[who].discards[-1].after_riichi = True
+                        called_meld.append(meld.who)
+
+                    if self._is_riichi(tag):
+                        riichi_step = int(self._get_attribute_content(tag, 'step'))
+                        who = int(self._get_attribute_content(tag, 'who'))
+                        if riichi_step == 2:
+                            added_players[who].discards[-1].after_riichi = True
+
+                    if self._is_new_dora(tag):
+                        dora = self._get_attribute_content(tag, 'hai')
+                        table.add_dora(dora)
+            except:
+                print('Failed to process log: {}'.format(log_id))
 
             tenpai_players.extend([x[1] for x in added_players.items()])
 
@@ -270,6 +280,9 @@ class LogParser(object):
 
     def _is_riichi(self, tag):
         return tag and 'REACH ' in tag
+
+    def _is_new_dora(self, tag):
+        return tag and '<DORA' in tag
 
     def _get_waiting(self, player):
         tiles = player.closed_hand

@@ -28,6 +28,9 @@ class Table(object):
     def get_player(self, player_seat):
         return self.players[player_seat]
 
+    def add_dora(self, dora):
+        self.dora_indicators.append(dora)
+
     @property
     def round_wind(self):
         if self.current_hand < 4:
