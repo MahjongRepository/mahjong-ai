@@ -157,7 +157,7 @@ class LogParser(object):
                             added_players[who].discards[-1].after_riichi = True
 
                     if self._is_new_dora(tag):
-                        dora = self._get_attribute_content(tag, 'hai')
+                        dora = int(self._get_attribute_content(tag, 'hai'))
                         table.add_dora(dora)
             except:
                 print('Failed to process log: {}'.format(log_id))
