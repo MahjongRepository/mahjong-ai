@@ -32,7 +32,8 @@ def main():
     if os.path.exists(temp_folder):
         print('Temp folder already exists. It was deleted.', end='\n\n')
         shutil.rmtree(temp_folder)
-        os.mkdir(temp_folder)
+
+    os.mkdir(temp_folder)
 
     total_count = line_count(data_path)
     test_count = int((total_count / 100.0) * test_data_percentage)
