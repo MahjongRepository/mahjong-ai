@@ -183,8 +183,8 @@ def prepare_data(raw_data):
         melds_temp = [x for x in row['melds'].split(',') if x]
         for x in melds_temp:
             temp = x.split(';')
-            meld_type = temp[0]
-            tiles = [int(x) for x in temp[1].split(',')]
+            # meld_type = temp[0]
+            tiles = [int(x) for x in temp[1].split('/')]
             for tile in tiles:
                 melds[tile] = 1
 
@@ -242,7 +242,7 @@ def tiles_34_to_sting_unsorted(tiles):
 
 def print_predictions(model, test_input, test_output, test_verification):
     predictions = model.predict(test_input, verbose=1)
-    print("predictions shape = ", predictions.shape)
+    print('predictions shape = ', predictions.shape)
 
     i = 0
     for prediction in predictions:
@@ -255,39 +255,30 @@ def print_predictions(model, test_input, test_output, test_verification):
         for x in discards_temp:
             temp = x.split(';')
             tile = int(temp[0])
-            is_tsumogiri = int(temp[1])
-            is_after_meld = int(temp[2])
+            # is_tsumogiri = int(temp[1])
+            # is_after_meld = int(temp[2])
 
             discards.append(tile)
 
-        # FIXME: melds are not shown, there is some error
         melds = []
         melds_temp = test_verification[i][2]
         for x in melds_temp:
-            if not x:
-                continue
-
             temp = x.split(';')
-            meld_type = temp[0]
-            tiles = [int(x) for x in temp[1].split(',')]
-            for tile in tiles:
-                melds.append(tile)
+            melds.append([int(x) for x in temp[1].split('/')])
 
         waits = []
         waits_temp = test_verification[i][3]
         for x in waits_temp:
             temp = x.split(';')
-            tile = int(temp[0])
-            waits.append(tile)
+            waits.append(int(temp[0]))
 
-        print("hand:", TilesConverter.to_one_line_string(hand))
-        print("discards:", TilesConverter.to_one_line_string(discards))
-        print("melds:", TilesConverter.to_one_line_string(melds))
-        print("waits:", TilesConverter.to_one_line_string(waits))
-        print("tiles_by_danger:", tiles_34_to_sting_unsorted(tiles_by_danger))
-        print("============================================")
-
-        time.sleep(1)
+        print('hand:', TilesConverter.to_one_line_string(hand))
+        print('discards:', TilesConverter.to_one_line_string(discards))
+        if melds:
+            print('melds:', ' '.join([TilesConverter.to_one_line_string(x) for x in melds]))
+        print('waits:', TilesConverter.to_one_line_string(waits))
+        print('tiles_by_danger:', tiles_34_to_sting_unsorted(tiles_by_danger))
+        print('============================================')
 
         i += 1
 

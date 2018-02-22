@@ -23,7 +23,7 @@ class CSVExporter(object):
             meld_type = meld.type
             if meld_type == Meld.KAN and not meld.opened:
                 meld_type = 'closed_kan'
-            melds.append('{};{}'.format(meld_type, ','.join([str(x) for x in meld.tiles])))
+            melds.append('{};{}'.format(meld_type, '/'.join([str(x) for x in meld.tiles])))
 
         discards = []
         for x in player.discards:
