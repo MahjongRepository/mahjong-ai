@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import copy
+import logging
 import re
 
 from mahjong.agari import Agari
@@ -12,6 +13,8 @@ from mahjong.tile import TilesConverter
 
 from parser.discard import Discard
 from parser.table import Table
+
+logger = logging.Logger('catch_all')
 
 
 class LogParser(object):
@@ -124,7 +127,15 @@ class LogParser(object):
                             if self.shanten.calculate_shanten(tiles_34, melds_34) == 0:
                                 player.set_waiting(self._get_waiting(table.get_player(player_seat)))
 
-                                added_players[player_seat] = copy.deepcopy(player)
+                                has_furiten = False
+                                for waiting_34 in player.waiting:
+                                    discards_34 = [x.tile // 4 for x in player.discards]
+
+                                    if waiting_34 in discards_34:
+                                        has_furiten = True
+
+                                if not has_furiten:
+                                    added_players[player_seat] = copy.deepcopy(player)
 
                     if self._is_draw(tag):
                         tile = self._parse_tile(tag)
@@ -153,13 +164,14 @@ class LogParser(object):
                     if self._is_riichi(tag):
                         riichi_step = int(self._get_attribute_content(tag, 'step'))
                         who = int(self._get_attribute_content(tag, 'who'))
-                        if riichi_step == 2:
+                        if riichi_step == 2 and who in added_players:
                             added_players[who].discards[-1].after_riichi = True
 
                     if self._is_new_dora(tag):
                         dora = int(self._get_attribute_content(tag, 'hai'))
                         table.add_dora(dora)
-            except:
+            except Exception as e:
+                logger.error(e, exc_info=True)
                 print('Failed to process log: {}'.format(log_id))
 
             tenpai_players.extend([x[1] for x in added_players.items()])
