@@ -12,13 +12,6 @@ You can find information about it there: https://github.com/MahjongRepository/ph
 
 Our main way to get data from replays.
 
-## JSON exporter
-
-`python prepare_data.py -p /path/to/db/2017.db -e json`
-
-It will save only 0.01% of logs as json. It is useful for random logs checking.
-We need it to be sure that our parsing is working fine.
-
 # Neural network testing:
 
 ## Guess waits in own hand

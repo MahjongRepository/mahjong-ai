@@ -8,6 +8,7 @@ import datetime
 from optparse import OptionParser
 
 import os
+from threading import Thread
 
 from parser.csv_exporter import CSVExporter
 from parser.json_exporter import JsonExporter
@@ -16,6 +17,31 @@ from parser.parser import LogParser
 data_directory = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'visual', 'data')
 if not os.path.exists(data_directory):
     os.mkdir(data_directory)
+
+
+tenpai_players = []
+threads_number = 6
+
+parser = LogParser()
+
+
+class ProcessLogsThread(Thread):
+
+    def __init__(self, result_array, results, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.result_array = result_array
+        self.results = results
+
+    def run(self):
+        processed = 0
+        for log_data in self.results:
+            if processed > 0 and processed % 1000 == 0:
+                # TODO: Clear indication of already processed logs (from all threads)
+                print('+100 processed logs')
+            game = parser.get_game_hands(log_data['log_content'], log_data['log_id'])
+            tenpai_players.extend(parser.extract_tenpai_players(game))
+            processed += 1
 
 
 def main():
@@ -57,9 +83,7 @@ def main():
         
     print('Loading and decompressing logs content...')
     logs = load_logs(db_path, limit)
-    
-    parser = LogParser()
-    
+
     if os.path.exists(csv_file):
         print('')
         print('Warning! {} already exists'.format(csv_file))
@@ -71,30 +95,34 @@ def main():
                 writer = csv.writer(f)
                 writer.writerow(CSVExporter.header())
 
-    processed = 0
-    processed_tenpais = 0
+    threads = []
     count_of_logs = len(logs)
     print('Starting processing...')
-    
-    for log_data in logs:
-        if processed % 1000 == 0:
-            print('')
-            print(get_date_string())
-            print('Processed logs: {}/{}'.format(processed, count_of_logs))
-            print('With {} hands'.format(processed_tenpais))
-        
-        game = parser.get_game_hands(log_data['log_content'], log_data['log_id'])
 
-        tenpai_players = parser.extract_tenpai_players(game)
-        processed_tenpais += len(tenpai_players)
-        
-        if export_format == 'json':
-            save_json_data(tenpai_players)
-            
-        if export_format == 'csv':
-            save_csv_data(tenpai_players, csv_file)
+    part = int(count_of_logs / threads_number)
+    for x in range(0, threads_number):
+        start = x * part
+        if (x + 1) != threads:
+            end = (x + 1) * part
+        else:
+            # we had to add all remaining items to the last thread
+            # for example with limit=81, threads=4 results will be distributed:
+            # 20 20 20 21
+            end = count_of_logs
 
-        processed += 1
+        threads.append(ProcessLogsThread(tenpai_players, logs[start:end]))
+
+    # let's start all threads
+    for t in threads:
+        t.start()
+
+    # let's wait while all threads will be finished
+    for t in threads:
+        t.join()
+
+    # TODO: Ability to save intermediate results to the csv
+    # right now if something will happen during logs processing we will lose everything
+    save_csv_data(tenpai_players, csv_file)
 
 
 def save_json_data(tenpai_players):
