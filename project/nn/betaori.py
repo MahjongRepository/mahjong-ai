@@ -92,7 +92,7 @@ def main():
 
             # NB: need to configure
             model.compile(optimizer='sgd',
-                          loss='mean_squared_error',
+                          loss='avg_squared_error',
                           metrics=['accuracy'])
 
             history = model.fit(train_input,
@@ -118,8 +118,11 @@ def main():
     results = model.evaluate(test_input, test_output, verbose=1)
     print('results [loss, acc] =', results)
 
-    if need_print_predictions:
-        print_predictions(model, test_input, test_output, test_verification)
+    calculate_predictions(model,
+                          test_input,
+                          test_output,
+                          test_verification,
+                          need_print_predictions)
 
 
 def load_data(path):
@@ -204,7 +207,7 @@ def prepare_data(raw_data):
         for x in waiting_temp:
             temp = x.split(';')
             tile = int(temp[0])
-            # if cost == 0 it means that player can't win on this waiting
+            # if cost == 0 it avgs that player can't win on this waiting
             # TODO: currently ignored
             # cost = int(temp[1])
             waiting[tile // 4] = 1
@@ -229,21 +232,29 @@ def tiles_34_to_sting_unsorted(tiles):
     string = ''
     for tile in tiles:
         if tile < 9:
-            string += str(tile + 1) + 's'
+            string += str(tile + 1) + 'm'
         elif 9 <= tile < 18:
             string += str(tile - 9 + 1) + 'p'
         elif 18 <= tile < 27:
-            string += str(tile - 18 + 1) + 'm'
+            string += str(tile - 18 + 1) + 's'
         else:
             string += str(tile - 27 + 1) + 'z'
 
     return string
 
 
-def print_predictions(model, test_input, test_output, test_verification):
+def calculate_predictions(model,
+                          test_input,
+                          test_output,
+                          test_verification,
+                          need_print_predictions):
     predictions = model.predict(test_input, verbose=1)
     print('predictions shape = ', predictions.shape)
 
+    sum_min_wait_pos = 0
+    sum_max_wait_pos = 0
+    sum_avg_wait_pos = 0
+    sum_genbutsu_error = 0
     i = 0
     for prediction in predictions:
         tiles_by_danger = np.argsort(prediction)
@@ -272,15 +283,64 @@ def print_predictions(model, test_input, test_output, test_verification):
             temp = x.split(';')
             waits.append(int(temp[0]))
 
-        print('hand:', TilesConverter.to_one_line_string(hand))
-        print('discards:', TilesConverter.to_one_line_string(discards))
-        if melds:
-            print('melds:', ' '.join([TilesConverter.to_one_line_string(x) for x in melds]))
-        print('waits:', TilesConverter.to_one_line_string(waits))
-        print('tiles_by_danger:', tiles_34_to_sting_unsorted(tiles_by_danger))
-        print('============================================')
+        sum_wait_pos = 0
+        min_wait_pos = len(tiles_by_danger)
+        max_wait_pos = 0
+        for w in waits:
+            pos = np.where(tiles_by_danger == (w // 4))[0].item(0)
+            if pos < min_wait_pos:
+                min_wait_pos = pos
+            if pos > max_wait_pos:
+                max_wait_pos = pos
+            sum_wait_pos += pos
+
+        avg_wait_pos = sum_wait_pos / len(waits)
+
+        unique_discards_34 = np.unique(np.array(discards) // 4)
+        sum_genbutsu_pos = 0
+        for d in unique_discards_34:
+            pos = np.where(tiles_by_danger == d)[0].item(0)
+            sum_genbutsu_pos += pos
+
+        num_genbutsu = unique_discards_34.size
+        avg_genbutsu_pos = sum_genbutsu_pos / num_genbutsu
+        expected_avg_genbutsu_pos = (((num_genbutsu - 1) * num_genbutsu) / 2) / num_genbutsu
+        genbutsu_error = avg_genbutsu_pos - expected_avg_genbutsu_pos
+
+        if need_print_predictions:
+            print('============================================')
+            print('hand:', TilesConverter.to_one_line_string(hand))
+            print('discards:', TilesConverter.to_one_line_string(discards))
+            if melds:
+                print('melds:', ' '.join([TilesConverter.to_one_line_string(x) for x in melds]))
+            print('waits:', TilesConverter.to_one_line_string(waits))
+            print('tiles_by_danger:', tiles_34_to_sting_unsorted(tiles_by_danger))
+            print('min_wait_pos:', min_wait_pos)
+            print('max_wait_pos:', max_wait_pos)
+            print('avg_wait_pos:', avg_wait_pos)
+            print('num_genbutsu:', num_genbutsu)
+            print('avg_genbutsu_pos:', avg_genbutsu_pos)
+            print('expected_avg_genbutsu_pos:', expected_avg_genbutsu_pos)
+            print('genbutsu_error:', genbutsu_error)
+            print('============================================')
 
         i += 1
+
+        sum_min_wait_pos += min_wait_pos
+        sum_max_wait_pos += max_wait_pos
+        sum_avg_wait_pos += avg_wait_pos
+        sum_genbutsu_error += sum_genbutsu_error
+
+    avg_min_wait_pos = sum_min_wait_pos * 1.0 / i
+    avg_max_wait_pos = sum_max_wait_pos * 1.0 / i
+    avg_avg_wait_pos = sum_avg_wait_pos * 1.0 / i
+    avg_genbutsu_error = sum_genbutsu_error * 1.0 / i
+
+    print("Prediction results:")
+    print("avg_min_wait_pos = %f (%f)" % (avg_min_wait_pos, avg_min_wait_pos / tiles_unique))
+    print("avg_max_wait_pos = %f (%f)" % (avg_max_wait_pos, avg_max_wait_pos / tiles_unique))
+    print("avg_avg_wait_pos = %f (%f)" % (avg_avg_wait_pos, avg_avg_wait_pos / tiles_unique))
+    print("avg_genbutsu_error =", avg_genbutsu_error)
 
 
 if __name__ == '__main__':
