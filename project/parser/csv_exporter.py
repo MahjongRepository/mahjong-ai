@@ -19,7 +19,7 @@ class CSVExporter(object):
     @staticmethod
     def export_player(player):
         melds = []
-        for meld in melds:
+        for meld in player.melds:
             meld_type = meld.type
             if meld_type == Meld.KAN and not meld.opened:
                 meld_type = 'closed_kan'
