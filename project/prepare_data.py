@@ -126,8 +126,10 @@ def save_json_data(tenpai_players):
 def save_csv_data(tenpai_players, csv_file):
     with open(csv_file, 'a') as f:
         writer = csv.writer(f)
-        for player in tenpai_players:
-            writer.writerow(CSVExporter.export_player(player))
+        for tenpai_player in tenpai_players:
+            for player in tenpai_player.table.players:
+                if player.seat != tenpai_player.seat:
+                    writer.writerow(CSVExporter.export_player(tenpai_player, player))
 
 
 def load_logs(db_path, limit):

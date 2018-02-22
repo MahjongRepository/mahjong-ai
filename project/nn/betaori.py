@@ -130,7 +130,7 @@ def load_data(path):
     with open(path, 'r') as f:
         reader = csv.DictReader(f)
         for row in reader:
-            if row['waiting']:
+            if row['tenpai_player_waiting']:
                 data.append(row)
     return data
 
@@ -167,7 +167,7 @@ def prepare_data(raw_data):
 
         discard_order_value = 1
         discard_order_step = 0.025
-        discards_temp = [x for x in row['discards'].split(',')]
+        discards_temp = [x for x in row['tenpai_player_discards'].split(',')]
         for x in discards_temp:
             temp = x.split(';')
             tile = int(temp[0])
@@ -183,7 +183,7 @@ def prepare_data(raw_data):
             # give output "-1":
             waiting[tile // 4] = -1
 
-        melds_temp = [x for x in row['melds'].split(',') if x]
+        melds_temp = [x for x in row['tenpai_player_melds'].split(',') if x]
         for x in melds_temp:
             temp = x.split(';')
             # meld_type = temp[0]
@@ -203,7 +203,7 @@ def prepare_data(raw_data):
 
         input_data.append(input_cur)
 
-        waiting_temp = [x for x in row['waiting'].split(',')]
+        waiting_temp = [x for x in row['tenpai_player_waiting'].split(',')]
         for x in waiting_temp:
             temp = x.split(';')
             tile = int(temp[0])
@@ -214,10 +214,11 @@ def prepare_data(raw_data):
 
         output_data.append(waiting)
 
-        player_hand = [int(x) for x in row['player_hand'].split(',')]
+        # Use it only for visual debugging!
+        tenpai_player_hand = [int(x) for x in row['tenpai_player_hand'].split(',')]
 
         verification_cur = []
-        verification_cur.append(player_hand)
+        verification_cur.append(tenpai_player_hand)
         verification_cur.append(discards_temp)
         verification_cur.append(melds_temp)
         verification_cur.append(waiting_temp)
