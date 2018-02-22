@@ -92,7 +92,7 @@ def main():
 
             # NB: need to configure
             model.compile(optimizer='sgd',
-                          loss='avg_squared_error',
+                          loss='mean_squared_error',
                           metrics=['accuracy'])
 
             history = model.fit(train_input,
