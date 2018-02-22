@@ -2,5 +2,6 @@ env
 .idea
 project/data
 project/visual/data
+project/nn/temp
 
-model.h5
+*.h5

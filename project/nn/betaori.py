@@ -18,16 +18,12 @@ tiles_unique = 34
 tiles_num = tiles_unique * 4
 input_size = tiles_num * 5
 
-model_path = 'model.h5'
+model_path = 'betaori.h5'
 test_data_percentage = 10
 
 
 def main():
     parser = OptionParser()
-
-    parser.add_option('--train_path',
-                      type='string',
-                      help='Path to .csv with data')
 
     parser.add_option('-p',
                       '--print_predictions',
@@ -49,73 +45,78 @@ def main():
 
     opts, _ = parser.parse_args()
 
-    data_path = opts.train_path
-    if not data_path:
-        parser.error('Path to input logs is not given.')
-
     need_print_predictions = opts.print_predictions
     need_visualize_history = opts.visualize
     rebuild = opts.rebuild
 
-    train_data = load_data(data_path)
+    temp_folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'temp')
+    if not os.path.exists(temp_folder):
+        print('Folder with data is not exists. Run split_csv.py')
+        return
 
-    test_data = []
-    print('Original data size: {}'.format(len(train_data)))
-
-    total_count = len(train_data)
-    test_count = int((total_count / 100.0) * test_data_percentage)
-
-    for x in range(0, test_count):
-        index = random.randint(0, len(train_data) - 1)
-        # delete element from input data and add it to test data
-        test_data.append(train_data.pop(index))
-
-    test_input_raw, test_output_raw, test_verification = prepare_data(test_data)
-
-    test_samples = len(test_input_raw)
-    test_input = np.asarray(test_input_raw).astype('float32')
-    test_output = np.asarray(test_output_raw).astype('float32')
-    print("Test data size =", test_samples)
+    csv_files = os.listdir(temp_folder)
+    if not csv_files:
+        print('Folder with data is empty. Run split_csv.py')
+        return
 
     if rebuild and os.path.exists(model_path):
         print('Delete old model')
         os.remove(model_path)
 
+    # remove test.csv with training files pool
+    test_csv = csv_files.pop(csv_files.index('test.csv'))
+
     if not os.path.exists(model_path):
+        train_files = sorted(csv_files)
+        print('{} files will be used for training'.format(len(train_files)))
+
         model = models.Sequential()
         # NB: need to configure
         model.add(layers.Dense(1024, activation='relu', input_shape=(input_size,)))
         model.add(layers.Dense(1024, activation='relu'))
         model.add(layers.Dense(tiles_unique, activation='tanh'))
 
-        # NB: need to configure
-        model.compile(optimizer='sgd',
-                      loss='mean_squared_error',
-                      metrics=['accuracy'])
+        for train_file in train_files:
+            print('')
+            print('Processing {}...'.format(train_file))
+            data_path = os.path.join(temp_folder, train_file)
 
-        train_input_raw, train_output_raw = prepare_data(train_data)[0:2]
+            data = load_data(data_path)
+            train_input_raw, train_output_raw, _ = prepare_data(data)
 
-        train_samples = len(train_input_raw)
-        train_input = np.asarray(train_input_raw).astype('float32')
-        train_output = np.asarray(train_output_raw).astype('float32')
-        print("Train data size =", train_samples)
+            train_samples = len(train_input_raw)
+            train_input = np.asarray(train_input_raw).astype('float32')
+            train_output = np.asarray(train_output_raw).astype('float32')
 
-        history = model.fit(train_input,
-                            train_output,
-                            epochs=8,
-                            batch_size=256,
-                            validation_data=(test_input, test_output))
+            print('Train data size =', train_samples)
+
+            # NB: need to configure
+            model.compile(optimizer='sgd',
+                          loss='mean_squared_error',
+                          metrics=['accuracy'])
+
+            history = model.fit(train_input,
+                                train_output,
+                                epochs=16,
+                                batch_size=256)
+
+            # if need_visualize_history:
+            #     plot_utils.plot_history(history)
 
         model.save(model_path)
-
-        if need_visualize_history:
-            plot_utils.plot_history(history)
     else:
-        print('Loading already existing model.')
         model = load_model(model_path)
 
+    test_data = load_data(os.path.join(temp_folder, test_csv))
+    test_input_raw, test_output_raw, test_verification = prepare_data(test_data)
+
+    test_samples = len(test_input_raw)
+    test_input = np.asarray(test_input_raw).astype('float32')
+    test_output = np.asarray(test_output_raw).astype('float32')
+    print('Test data size =', test_samples)
+
     results = model.evaluate(test_input, test_output, verbose=1)
-    print("results [loss, acc] =", results)
+    print('results [loss, acc] =', results)
 
     if need_print_predictions:
         print_predictions(model, test_input, test_output, test_verification)
@@ -165,10 +166,6 @@ def prepare_data(raw_data):
         discard_order_step = 0.025
         discards_temp = [x for x in row['discards'].split(',')]
         for x in discards_temp:
-            if not x:
-                print("Bad input discards data! Check your .csv")
-                exit(1)
-
             temp = x.split(';')
             tile = int(temp[0])
             is_tsumogiri = int(temp[1])
@@ -183,11 +180,8 @@ def prepare_data(raw_data):
             # give output "-1":
             waiting[tile // 4] = -1
 
-        melds_temp = [x for x in row['melds'].split(',')]
+        melds_temp = [x for x in row['melds'].split(',') if x]
         for x in melds_temp:
-            if not x:
-                continue
-
             temp = x.split(';')
             meld_type = temp[0]
             tiles = [int(x) for x in temp[1].split(',')]
@@ -250,7 +244,7 @@ def print_predictions(model, test_input, test_output, test_verification):
     predictions = model.predict(test_input, verbose=1)
     print("predictions shape = ", predictions.shape)
 
-    i = 0;
+    i = 0
     for prediction in predictions:
         tiles_by_danger = np.argsort(prediction)
 

@@ -19,16 +19,12 @@ import plot_utils
 tiles_unique = 34
 tiles_num = tiles_unique * 4
 
-model_path = 'model.h5'
+model_path = 'hand.h5'
 test_data_percentage = 10
 
 
 def main():
     parser = OptionParser()
-
-    parser.add_option('--train_path',
-                      type='string',
-                      help='Path to .csv with data')
 
     parser.add_option('-p',
                       '--print_predictions',
@@ -50,72 +46,78 @@ def main():
 
     opts, _ = parser.parse_args()
 
-    data_path = opts.train_path
-    if not data_path:
-        parser.error('Path to input logs is not given.')
-
     need_print_predictions = opts.print_predictions
     need_visualize_history = opts.visualize
     rebuild = opts.rebuild
 
-    train_data = load_data(data_path)
-    test_data = []
-    print('Original data size: {}'.format(len(train_data)))
+    temp_folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'temp')
+    if not os.path.exists(temp_folder):
+        print('Folder with data is not exists. Run split_csv.py')
+        return
 
-    total_count = len(train_data)
-    test_count = int((total_count / 100.0) * test_data_percentage)
-
-    for x in range(0, test_count):
-        index = random.randint(0, len(train_data) - 1)
-        # delete element from input data and add it to test data
-        test_data.append(train_data.pop(index))
-
-    train_input_raw, train_output_raw = prepare_data(train_data)
-    test_input_raw, test_output_raw = prepare_data(test_data)
-
-    print("Train data size = %d, test data size = %d" % (len(train_input_raw), len(test_input_raw)))
-
-    train_samples = len(train_input_raw)
-    test_samples = len(test_input_raw)
-
-    train_input = np.asarray(train_input_raw).astype('float32')
-    train_output = np.asarray(train_output_raw).astype('float32')
-    test_input = np.asarray(test_input_raw).astype('float32')
-    test_output = np.asarray(test_output_raw).astype('float32')
-
-    train_input = train_input.reshape((train_samples, tiles_num))
-    test_input = test_input.reshape((test_samples, tiles_num))
+    csv_files = os.listdir(temp_folder)
+    if not csv_files:
+        print('Folder with data is empty. Run split_csv.py')
+        return
 
     if rebuild and os.path.exists(model_path):
         print('Delete old model')
         os.remove(model_path)
 
+    # remove test.csv with training files pool
+    test_csv = csv_files.pop(csv_files.index('test.csv'))
+
     if not os.path.exists(model_path):
+        train_files = sorted(csv_files)
+        print('{} files will be used for training'.format(len(train_files)))
+
         model = models.Sequential()
         model.add(layers.Dense(1024, activation='relu', input_shape=(tiles_num,)))
         model.add(layers.Dense(1024, activation='relu'))
         model.add(layers.Dense(tiles_unique, activation='sigmoid'))
 
-        model.compile(optimizer='rmsprop',
-                      loss='binary_crossentropy',
-                      metrics=['accuracy'])
+        for train_file in train_files:
+            print('')
+            print('Processing {}...'.format(train_file))
+            data_path = os.path.join(temp_folder, train_file)
 
-        history = model.fit(train_input,
-                            train_output,
-                            epochs=20,
-                            batch_size=512,
-                            validation_data=(test_input, test_output))
+            data = load_data(data_path)
+            train_input_raw, train_output_raw = prepare_data(data)
+
+            train_samples = len(train_input_raw)
+            train_input = np.asarray(train_input_raw).astype('float32')
+            train_output = np.asarray(train_output_raw).astype('float32')
+
+            print('Train data size =', train_samples)
+
+            model.compile(optimizer='rmsprop',
+                          loss='binary_crossentropy',
+                          metrics=['accuracy'])
+
+            history = model.fit(
+                train_input,
+                train_output,
+                epochs=20,
+                batch_size=512
+            )
+
+            # if need_visualize_history:
+            #     plot_utils.plot_history(history)
 
         model.save(model_path)
-
-        if need_visualize_history:
-            plot_utils.plot_history(history)
     else:
-        print('Loading already existing model.')
         model = load_model(model_path)
 
+    test_data = load_data(os.path.join(temp_folder, test_csv))
+    test_input_raw, test_output_raw = prepare_data(test_data)
+
+    test_samples = len(test_input_raw)
+    test_input = np.asarray(test_input_raw).astype('float32')
+    test_output = np.asarray(test_output_raw).astype('float32')
+    print('Test data size =', test_samples)
+
     results = model.evaluate(test_input, test_output, verbose=1)
-    print("results [loss, acc] =", results)
+    print('results [loss, acc] =', results)
 
     if need_print_predictions:
         print_predictions(model, test_input, test_output)
@@ -139,18 +141,19 @@ def prepare_data(raw_data):
         # TODO: Sometimes we can find here empty waiting. It is a bug in parser
         if row['waiting'] and row['player_hand']:
             player_hand = [int(x) for x in row['player_hand'].split(',')]
-            waiting_data = [int(x) for x in row['waiting'].split(',')]
+
+            waiting = [0 for x in range(tiles_unique)]
+            waiting_temp = [x for x in row['waiting'].split(',')]
+            for x in waiting_temp:
+                temp = x.split(';')
+                tile = int(temp[0]) // 4
+                waiting[tile] = 1
 
             tiles = [0 for x in range(tiles_num)]
             for i in range(len(player_hand)):
                 tiles[player_hand[i]] = 1
 
             input_data.append(tiles)
-
-            waiting = [0 for x in range(tiles_unique)]
-            for wait in waiting_data:
-                waiting[wait // 4] = 1
-
             output_data.append(waiting)
 
     return input_data, output_data

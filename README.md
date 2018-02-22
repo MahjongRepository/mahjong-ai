@@ -24,7 +24,20 @@ We need it to be sure that our parsing is working fine.
 ## Guess waits in own hand
 
 1. `cd project/nn/`
-2. `python own_hand_waits.py --train_path <path_to_training>.csv [-p] [-r] [-v]`
+2. `python split_csv.py -f <path_to_data>.csv`
+3. `python own_hand_waits.py [-p] [-r] [-v]`
+
+`-r` - train model anew instead of trying to read saved model from file
+
+`-v` - visualize loss and accuracy on training and validation data for all training epochs
+
+`-p` - check NN guesses and print all mistakes
+
+## Betaori
+
+1. `cd project/nn/`
+2. `python split_csv.py -f <path_to_data>.csv`
+2. `python betaori.py [-p] [-r] [-v]`
 
 `-r` - train model anew instead of trying to read saved model from file
 
