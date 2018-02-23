@@ -13,7 +13,8 @@ import numpy as np
 tiles_unique = 34
 tiles_num = tiles_unique * 4
 # 5 states for each player + own hand
-input_size = tiles_num * 5 * 3 + tiles_num
+# input_size = tiles_num * 5 * 3 + tiles_num
+input_size = tiles_num * 5 + tiles_num * 3 * 2
 
 model_path = 'betaori.h5'
 test_data_percentage = 10
@@ -239,16 +240,16 @@ def prepare_data(raw_data):
             melds,
             discards_order,
             sp_discards,
-            sp_tsumogiri,
-            sp_after_meld,
+            # sp_tsumogiri,
+            # sp_after_meld,
             sp_melds,
             sp_discards_order,
             tp_discards,
-            tp_tsumogiri,
-            tp_after_meld,
+            # tp_tsumogiri,
+            # tp_after_meld,
             tp_melds,
             tp_discards_order,
-            player_hand
+            # player_hand
         ))
 
         if len(input_cur) != input_size:
