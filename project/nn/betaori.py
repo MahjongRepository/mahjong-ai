@@ -161,33 +161,28 @@ def prepare_data(raw_data):
         # we give value 0
         waiting = [0 for x in range(tiles_num // 4)]
 
-        # TODO: currently ignored
-        # player_wind = row['player_wind']
-        # round_wind = row['round_wind']
+        tenpai_player_discards = prepare_discards(row['tenpai_player_discards'])
 
         discard_order_value = 1
         discard_order_step = 0.025
-        discards_temp = [x for x in row['tenpai_player_discards'].split(',')]
-        for x in discards_temp:
-            temp = x.split(';')
-            tile = int(temp[0])
-            is_tsumogiri = int(temp[1])
-            is_after_meld = int(temp[2])
+        for x in tenpai_player_discards:
+            tile = x[0]
+            is_tsumogiri = x[1]
+            is_after_meld = x[2]
 
             discards[tile] = 1
             tsumogiri[tile] = is_tsumogiri
             after_meld[tile] = is_after_meld
             discards_order[tile] = discard_order_value
             discard_order_value -= discard_order_step
+
             # Here we give hint to network during training: tiles from discard
             # give output "-1":
             waiting[tile // 4] = -1
 
-        melds_temp = [x for x in row['tenpai_player_melds'].split(',') if x]
-        for x in melds_temp:
-            temp = x.split(';')
-            # meld_type = temp[0]
-            tiles = [int(x) for x in temp[1].split('/')]
+        tenpai_player_melds = prepare_melds(row['tenpai_player_melds'])
+        for x in tenpai_player_melds:
+            tiles = x[0]
             for tile in tiles:
                 melds[tile] = 1
 
@@ -219,13 +214,40 @@ def prepare_data(raw_data):
 
         verification_cur = []
         verification_cur.append(tenpai_player_hand)
-        verification_cur.append(discards_temp)
-        verification_cur.append(melds_temp)
+        verification_cur.append(tenpai_player_discards)
+        verification_cur.append(tenpai_player_melds)
         verification_cur.append(waiting_temp)
 
         verification_data.append(verification_cur)
 
     return input_data, output_data, verification_data
+
+
+def prepare_discards(data):
+    discards_temp = [x for x in data.split(',')]
+    result = []
+    for x in discards_temp:
+        temp = x.split(';')
+        result.append([
+            int(temp[0]),
+            int(temp[1]),
+            int(temp[2])
+        ])
+    return result
+
+
+def prepare_melds(data):
+    melds = []
+    melds_temp = [x for x in data.split(',') if x]
+    for x in melds_temp:
+        temp = x.split(';')
+        tiles = [int(x) for x in temp[1].split('/')]
+        melds.append([
+            tiles,
+            # meld type
+            temp[0]
+        ])
+    return melds
 
 
 # TODO: probably this should be cleaned up and made part of TilesConverter class
@@ -256,6 +278,8 @@ def calculate_predictions(model,
     predictions = model.predict(test_input, verbose=1)
     print('predictions shape = ', predictions.shape)
 
+    displayed_hands = []
+
     sum_min_wait_pos = 0
     sum_max_wait_pos = 0
     sum_avg_wait_pos = 0
@@ -266,21 +290,9 @@ def calculate_predictions(model,
 
         hand = test_verification[i][0]
 
-        discards = []
-        discards_temp = test_verification[i][1]
-        for x in discards_temp:
-            temp = x.split(';')
-            tile = int(temp[0])
-            # is_tsumogiri = int(temp[1])
-            # is_after_meld = int(temp[2])
+        discards = [x[0] for x in test_verification[i][1]]
 
-            discards.append(tile)
-
-        melds = []
-        melds_temp = test_verification[i][2]
-        for x in melds_temp:
-            temp = x.split(';')
-            melds.append([int(x) for x in temp[1].split('/')])
+        melds = test_verification[i][2]
 
         waits = []
         waits_temp = test_verification[i][3]
@@ -313,21 +325,30 @@ def calculate_predictions(model,
         genbutsu_error = avg_genbutsu_pos - expected_avg_genbutsu_pos
 
         if need_print_predictions:
-            print('============================================')
-            print('hand:', TilesConverter.to_one_line_string(hand))
-            print('discards:', tiles_136_to_sting_unsorted(discards))
-            if melds:
-                print('melds:', ' '.join([TilesConverter.to_one_line_string(x) for x in melds]))
-            print('waits:', TilesConverter.to_one_line_string(waits))
-            print('tiles_by_danger:', tiles_34_to_sting_unsorted(tiles_by_danger))
-            print('min_wait_pos:', min_wait_pos)
-            print('max_wait_pos:', max_wait_pos)
-            print('avg_wait_pos:', avg_wait_pos)
-            print('num_genbutsu:', num_genbutsu)
-            print('avg_genbutsu_pos:', avg_genbutsu_pos)
-            print('expected_avg_genbutsu_pos:', expected_avg_genbutsu_pos)
-            print('genbutsu_error:', genbutsu_error)
-            print('============================================')
+            hand = TilesConverter.to_one_line_string(hand)
+            discards = tiles_136_to_sting_unsorted(discards)
+            tiles_by_danger = tiles_34_to_sting_unsorted(tiles_by_danger)
+
+            # It is not really useful to see three times one hand in output
+            # later we can change it
+            # we assume that discards + danger tiles will be unique for each hand
+            hand_hash = '{}_{}_{}'.format(hand, discards, tiles_by_danger)
+            if hand_hash not in displayed_hands:
+                print('============================================')
+                print('hand:', hand)
+                print('discards:', discards)
+                if melds:
+                    print('melds:', ' '.join([TilesConverter.to_one_line_string(x[0]) for x in melds]))
+                print('waits:', TilesConverter.to_one_line_string(waits))
+                print('tiles_by_danger:', tiles_by_danger)
+                print('min_wait_pos:', min_wait_pos)
+                print('max_wait_pos:', max_wait_pos)
+                print('avg_wait_pos:', avg_wait_pos)
+                print('num_genbutsu:', num_genbutsu)
+                print('avg_genbutsu_pos:', avg_genbutsu_pos)
+                print('expected_avg_genbutsu_pos:', expected_avg_genbutsu_pos)
+                print('genbutsu_error:', genbutsu_error)
+                print('============================================')
 
         i += 1
 
