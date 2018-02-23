@@ -2,8 +2,6 @@
 import csv
 import itertools
 import os
-import random
-import time
 
 from keras import layers
 from keras import models
@@ -12,11 +10,10 @@ from mahjong.tile import TilesConverter
 from optparse import OptionParser
 import numpy as np
 
-import plot_utils
-
 tiles_unique = 34
 tiles_num = tiles_unique * 4
-input_size = tiles_num * 5
+# 5 states for each player + own hand
+input_size = tiles_num * 5 * 3 + tiles_num
 
 model_path = 'betaori.h5'
 test_data_percentage = 10
@@ -46,7 +43,7 @@ def main():
     opts, _ = parser.parse_args()
 
     need_print_predictions = opts.print_predictions
-    need_visualize_history = opts.visualize
+    # need_visualize_history = opts.visualize
     rebuild = opts.rebuild
 
     temp_folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'temp')
@@ -135,70 +132,79 @@ def load_data(path):
     return data
 
 
+def process_discards(discards_temp, melds_temp):
+    # For input we concatenate 5 rows of data for each player,
+    # each row representing 136 tiles and their states:
+    # First row - is discarded
+    # Seconds row - tsumogiri flag
+    # Third row - "after meld" flag
+    # Fourth row - tile is present in open set
+    # Fifth row - how long ago tile was discarded, 1 for first discad,
+    #             and decreases by 0.025 for each following discard
+    # NB: this should correspond to input_size variable!
+    discards = [0 for x in range(tiles_num)]
+    tsumogiri = [0 for x in range(tiles_num)]
+    after_meld = [0 for x in range(tiles_num)]
+    melds = [0 for x in range(tiles_num)]
+    discards_order = [0 for x in range(tiles_num)]
+
+    # Output etalon - actual waits
+    # For tiles that are not 100% safe and not actual waits,
+    # we give value 0
+    waiting = [0 for x in range(tiles_num // 4)]
+
+    # TODO: currently ignored
+    # player_wind = row['player_wind']
+    # round_wind = row['round_wind']
+
+    discard_order_value = 1
+    discard_order_step = 0.025
+
+    for x in discards_temp:
+        temp = x.split(';')
+        tile = int(temp[0])
+        is_tsumogiri = int(temp[1])
+        is_after_meld = int(temp[2])
+
+        discards[tile] = 1
+        tsumogiri[tile] = is_tsumogiri
+        after_meld[tile] = is_after_meld
+        discards_order[tile] = discard_order_value
+        discard_order_value -= discard_order_step
+        # Here we give hint to network during training: tiles from discard
+        # give output "-1":
+        waiting[tile // 4] = -1
+
+    for x in melds_temp:
+        temp = x.split(';')
+        # meld_type = temp[0]
+        tiles = [int(x) for x in temp[1].split('/')]
+        for tile in tiles:
+            melds[tile] = 1
+
+    return discards, tsumogiri, after_meld, melds, discards_order
+
+
 def prepare_data(raw_data):
     input_data = []
     output_data = []
     verification_data = []
 
     for row in raw_data:
-        # For input we concatenate 5 rows of data, each representing 136 tiles
-        # and their states:
-        # First row - is discarded
-        # Seconds row - tsumogiri flag
-        # Third row - "after meld" flag
-        # Fourth row - tile is present in open set
-        # Fifth row - how long ago tile was discarded, 1 for first discad,
-        #             and decreases by 0.025 for each following discard
-        # NB: this should correspond to input_size variable!
-        discards = [0 for x in range(tiles_num)]
-        tsumogiri = [0 for x in range(tiles_num)]
-        after_meld = [0 for x in range(tiles_num)]
-        melds = [0 for x in range(tiles_num)]
-        discards_order = [0 for x in range(tiles_num)]
+        # FIXME: something wrong here
+        input_cur = list(itertools.chain(
+            process_discards([x for x in row['tenpai_player_discards'].split(',')],
+                             [x for x in row['tenpai_player_melds'].split(',') if x]),
+            process_discards([x for x in row['second_player_discards'].split(',')],
+                             [x for x in row['second_player_melds'].split(',') if x]),
+            process_discards([x for x in row['third_player_discards'].split(',')],
+                             [x for x in row['third_player_melds'].split(',') if x]),
+            [int(x) for x in row['player_hand'].split(',')])
+        )
 
-        # Output etalon - actual waits
-        # For tiles that are not 100% safe and not actual waits,
-        # we give value 0
-        waiting = [0 for x in range(tiles_num // 4)]
-
-        # TODO: currently ignored
-        # player_wind = row['player_wind']
-        # round_wind = row['round_wind']
-
-        discard_order_value = 1
-        discard_order_step = 0.025
-        discards_temp = [x for x in row['tenpai_player_discards'].split(',')]
-        for x in discards_temp:
-            temp = x.split(';')
-            tile = int(temp[0])
-            is_tsumogiri = int(temp[1])
-            is_after_meld = int(temp[2])
-
-            discards[tile] = 1
-            tsumogiri[tile] = is_tsumogiri
-            after_meld[tile] = is_after_meld
-            discards_order[tile] = discard_order_value
-            discard_order_value -= discard_order_step
-            # Here we give hint to network during training: tiles from discard
-            # give output "-1":
-            waiting[tile // 4] = -1
-
-        melds_temp = [x for x in row['tenpai_player_melds'].split(',') if x]
-        for x in melds_temp:
-            temp = x.split(';')
-            # meld_type = temp[0]
-            tiles = [int(x) for x in temp[1].split('/')]
-            for tile in tiles:
-                melds[tile] = 1
-
-        input_cur = list(itertools.chain(discards,
-                                         tsumogiri,
-                                         after_meld,
-                                         melds,
-                                         discards_order))
         if len(input_cur) != input_size:
-            print("Internal error: len(input_cur) should be %d, but is %d" \
-                  % (input_size, len(input_cur)))
+            print("Internal error: len(input_cur) should be %d, but is %d" %
+                  (input_size, len(input_cur)))
             exit(1)
 
         input_data.append(input_cur)
