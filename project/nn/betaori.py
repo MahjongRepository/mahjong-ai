@@ -132,7 +132,7 @@ def load_data(path):
     return data
 
 
-def process_discards(discards_temp, melds_temp):
+def process_discards(discards_data, melds_data):
     # For input we concatenate 5 rows of data for each player,
     # each row representing 136 tiles and their states:
     # First row - is discarded
@@ -148,41 +148,63 @@ def process_discards(discards_temp, melds_temp):
     melds = [0 for x in range(tiles_num)]
     discards_order = [0 for x in range(tiles_num)]
 
-    # Output etalon - actual waits
-    # For tiles that are not 100% safe and not actual waits,
-    # we give value 0
-    waiting = [0 for x in range(tiles_num // 4)]
-
-    # TODO: currently ignored
-    # player_wind = row['player_wind']
-    # round_wind = row['round_wind']
-
     discard_order_value = 1
     discard_order_step = 0.025
 
+    discards_temp = prepare_discards(discards_data)
     for x in discards_temp:
-        temp = x.split(';')
-        tile = int(temp[0])
-        is_tsumogiri = int(temp[1])
-        is_after_meld = int(temp[2])
+        tile = x[0]
+        is_tsumogiri = x[1]
+        is_after_meld = x[2]
 
         discards[tile] = 1
         tsumogiri[tile] = is_tsumogiri
         after_meld[tile] = is_after_meld
         discards_order[tile] = discard_order_value
         discard_order_value -= discard_order_step
-        # Here we give hint to network during training: tiles from discard
-        # give output "-1":
-        waiting[tile // 4] = -1
 
+    melds_temp = prepare_melds(melds_data)
     for x in melds_temp:
-        temp = x.split(';')
-        # meld_type = temp[0]
-        tiles = [int(x) for x in temp[1].split('/')]
+        tiles = x[0]
         for tile in tiles:
             melds[tile] = 1
 
     return discards, tsumogiri, after_meld, melds, discards_order
+
+
+def prepare_discards(data):
+    # sometimes we have empty discards
+    # for example when other player is tenpai after first discard
+    if not data:
+        return []
+
+    discards_temp = [x for x in data.split(',')]
+    result = []
+    for x in discards_temp:
+        temp = x.split(';')
+        result.append([
+            # tile
+            int(temp[0]),
+            # is_tsumogiri
+            int(temp[1]),
+            # is_after_meld
+            int(temp[2])
+        ])
+    return result
+
+
+def prepare_melds(data):
+    melds = []
+    melds_temp = [x for x in data.split(',') if x]
+    for x in melds_temp:
+        temp = x.split(';')
+        tiles = [int(x) for x in temp[1].split('/')]
+        melds.append([
+            tiles,
+            # meld type
+            temp[0]
+        ])
+    return melds
 
 
 def prepare_data(raw_data):
@@ -191,16 +213,43 @@ def prepare_data(raw_data):
     verification_data = []
 
     for row in raw_data:
-        # FIXME: something wrong here
-        input_cur = list(itertools.chain(
-            process_discards([x for x in row['tenpai_player_discards'].split(',')],
-                             [x for x in row['tenpai_player_melds'].split(',') if x]),
-            process_discards([x for x in row['second_player_discards'].split(',')],
-                             [x for x in row['second_player_melds'].split(',') if x]),
-            process_discards([x for x in row['third_player_discards'].split(',')],
-                             [x for x in row['third_player_melds'].split(',') if x]),
-            [int(x) for x in row['player_hand'].split(',')])
+        discards, tsumogiri, after_meld, melds, discards_order = process_discards(
+            row['tenpai_player_discards'],
+            row['tenpai_player_melds']
         )
+
+        sp_discards, sp_tsumogiri, sp_after_meld, sp_melds, sp_discards_order = process_discards(
+            row['second_player_discards'],
+            row['second_player_melds']
+        )
+
+        tp_discards, tp_tsumogiri, tp_after_meld, tp_melds, tp_discards_order = process_discards(
+            row['third_player_discards'],
+            row['third_player_melds']
+        )
+
+        player_hand = [0 for x in range(tiles_num)]
+        for x in [int(x) for x in row['player_hand'].split(',')]:
+            player_hand[x] += 1
+
+        input_cur = list(itertools.chain(
+            discards,
+            tsumogiri,
+            after_meld,
+            melds,
+            discards_order,
+            sp_discards,
+            sp_tsumogiri,
+            sp_after_meld,
+            sp_melds,
+            sp_discards_order,
+            tp_discards,
+            tp_tsumogiri,
+            tp_after_meld,
+            tp_melds,
+            tp_discards_order,
+            player_hand
+        ))
 
         if len(input_cur) != input_size:
             print("Internal error: len(input_cur) should be %d, but is %d" %
@@ -208,6 +257,19 @@ def prepare_data(raw_data):
             exit(1)
 
         input_data.append(input_cur)
+
+        # Output etalon - actual waits
+        # For tiles that are not 100% safe and not actual waits,
+        # we give value 0
+        waiting = [0 for x in range(tiles_num // 4)]
+
+        tenpai_discards = prepare_discards(row['tenpai_player_discards'])
+        tenpai_melds = prepare_melds(row['tenpai_player_melds'])
+
+        for x in tenpai_discards:
+            # Here we give hint to network during training: tiles from discard
+            # give output "-1":
+            waiting[x[0] // 4] = -1
 
         waiting_temp = [x for x in row['tenpai_player_waiting'].split(',')]
         for x in waiting_temp:
@@ -225,8 +287,8 @@ def prepare_data(raw_data):
 
         verification_cur = []
         verification_cur.append(tenpai_player_hand)
-        verification_cur.append(discards_temp)
-        verification_cur.append(melds_temp)
+        verification_cur.append(tenpai_discards)
+        verification_cur.append(tenpai_melds)
         verification_cur.append(waiting_temp)
 
         verification_data.append(verification_cur)
@@ -272,21 +334,8 @@ def calculate_predictions(model,
 
         hand = test_verification[i][0]
 
-        discards = []
-        discards_temp = test_verification[i][1]
-        for x in discards_temp:
-            temp = x.split(';')
-            tile = int(temp[0])
-            # is_tsumogiri = int(temp[1])
-            # is_after_meld = int(temp[2])
-
-            discards.append(tile)
-
-        melds = []
-        melds_temp = test_verification[i][2]
-        for x in melds_temp:
-            temp = x.split(';')
-            melds.append([int(x) for x in temp[1].split('/')])
+        discards = [x[0] for x in test_verification[i][1]]
+        melds = [x[0] for x in test_verification[i][2]]
 
         waits = []
         waits_temp = test_verification[i][3]
