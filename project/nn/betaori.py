@@ -12,9 +12,7 @@ import numpy as np
 
 tiles_unique = 34
 tiles_num = tiles_unique * 4
-# 5 states for each player + own hand
-# input_size = tiles_num * 5 * 3 + tiles_num
-input_size = tiles_num * 5 + tiles_num * 3 * 2
+input_size = tiles_num * 5 + tiles_num * 3 * 2 + tiles_num // 4
 
 model_path = 'betaori.h5'
 test_data_percentage = 10
@@ -133,7 +131,7 @@ def load_data(path):
     return data
 
 
-def process_discards(discards_data, melds_data):
+def process_discards(discards_data, melds_data, out_tiles):
     # For input we concatenate 5 rows of data for each player,
     # each row representing 136 tiles and their states:
     # First row - is discarded
@@ -164,13 +162,17 @@ def process_discards(discards_data, melds_data):
         discards_order[tile] = discard_order_value
         discard_order_value -= discard_order_step
 
+        out_tiles[tile // 4] += 0.25
+
     melds_temp = prepare_melds(melds_data)
     for x in melds_temp:
         tiles = x[0]
         for tile in tiles:
             melds[tile] = 1
 
-    return discards, tsumogiri, after_meld, melds, discards_order
+            out_tiles[tile // 4] += 0.25
+
+    return discards, tsumogiri, after_meld, melds, discards_order, out_tiles
 
 
 def prepare_discards(data):
@@ -214,24 +216,35 @@ def prepare_data(raw_data):
     verification_data = []
 
     for row in raw_data:
-        discards, tsumogiri, after_meld, melds, discards_order = process_discards(
+        # total number of out tiles (all discards, all melds, player hand, dora indicators)
+        out_tiles = [0 for x in range(tiles_num // 4)]
+
+        discards, tsumogiri, after_meld, melds, discards_order, out_tiles = process_discards(
             row['tenpai_player_discards'],
-            row['tenpai_player_melds']
+            row['tenpai_player_melds'],
+            out_tiles
         )
 
-        sp_discards, sp_tsumogiri, sp_after_meld, sp_melds, sp_discards_order = process_discards(
+        sp_discards, sp_tsumogiri, sp_after_meld, sp_melds, sp_discards_order, out_tiles = process_discards(
             row['second_player_discards'],
-            row['second_player_melds']
+            row['second_player_melds'],
+            out_tiles
         )
 
-        tp_discards, tp_tsumogiri, tp_after_meld, tp_melds, tp_discards_order = process_discards(
+        tp_discards, tp_tsumogiri, tp_after_meld, tp_melds, tp_discards_order, out_tiles = process_discards(
             row['third_player_discards'],
-            row['third_player_melds']
+            row['third_player_melds'],
+            out_tiles
         )
 
         player_hand = [0 for x in range(tiles_num)]
         for x in [int(x) for x in row['player_hand'].split(',')]:
             player_hand[x] += 1
+
+            out_tiles[x // 4] += 0.25
+
+        for x in [int(x) for x in row['dora_indicators'].split(',')]:
+            out_tiles[x // 4] += 0.25
 
         input_cur = list(itertools.chain(
             discards,
@@ -250,6 +263,7 @@ def prepare_data(raw_data):
             tp_melds,
             tp_discards_order,
             # player_hand
+            out_tiles
         ))
 
         if len(input_cur) != input_size:
