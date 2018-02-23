@@ -244,6 +244,10 @@ def tiles_34_to_sting_unsorted(tiles):
     return string
 
 
+def tiles_136_to_sting_unsorted(tiles):
+    return tiles_34_to_sting_unsorted([x // 4 for x in tiles])
+
+
 def calculate_predictions(model,
                           test_input,
                           test_output,
@@ -311,7 +315,7 @@ def calculate_predictions(model,
         if need_print_predictions:
             print('============================================')
             print('hand:', TilesConverter.to_one_line_string(hand))
-            print('discards:', TilesConverter.to_one_line_string(discards))
+            print('discards:', tiles_136_to_sting_unsorted(discards))
             if melds:
                 print('melds:', ' '.join([TilesConverter.to_one_line_string(x) for x in melds]))
             print('waits:', TilesConverter.to_one_line_string(waits))
