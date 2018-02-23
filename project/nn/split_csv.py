@@ -38,27 +38,33 @@ def main():
     total_count = line_count(data_path)
     test_count = int((total_count / 100.0) * test_data_percentage)
 
-    # remove from original data n% of rows
-    data_rows = list(np.random.choice(np.arange(1, total_count + 1), (total_count - test_count), replace=False))
-    # subtract from original data removed rows
-    # we will get test rows with this operation
-    test_rows = list(set([x for x in range(0, total_count)]) - set(data_rows))
+    # because of our data we need to select three values in a row
+    test_count = round(test_count / 3)
+    indices_with_step_three = list(range(1, total_count, 3))
+    random_indices = np.random.choice(indices_with_step_three, test_count)
+    test_rows = []
+    for x in random_indices:
+        test_rows.append(x)
+        test_rows.append(x + 1)
+        test_rows.append(x + 2)
+
+    data_rows = list(set([x for x in range(0, total_count)]) - set(test_rows))
 
     print('Original data size: {}'.format(total_count))
     print('Train data size: {}'.format(len(data_rows)))
     print('Test data size: {}'.format(len(test_rows)), end='\n\n')
 
+    # pandas didn't add correct headers to csv by default
+    # so we had to do it manually
+    with open(data_path, 'r') as f:
+        reader = csv.reader(f)
+        header = next(reader)
+
     # our test data had to be in separate file
     # we need to skip data rows from original file to extract test data
     print('Saving test.csv...')
     test_data = pd.read_csv(data_path, skiprows=data_rows)
-    test_data.to_csv(os.path.join(temp_folder, 'test.csv'), index=False)
-
-    # pandas didn't add correct headers to csv by default
-    # so we had to do it manually for chunks
-    with open(data_path, 'r') as f:
-        reader = csv.reader(f)
-        header = next(reader)
+    test_data.to_csv(os.path.join(temp_folder, 'test.csv'), header=header, index=False)
 
     # it is important to skip test rows there
     # otherwise we will mix train and test data
