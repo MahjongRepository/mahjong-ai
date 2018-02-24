@@ -61,6 +61,14 @@ def main():
     # remove test.csv with training files pool
     test_csv = csv_files.pop(csv_files.index('test.csv'))
 
+    test_data = load_data(os.path.join(temp_folder, test_csv))
+    test_input_raw, test_output_raw, test_verification = prepare_data(test_data)
+
+    test_samples = len(test_input_raw)
+    test_input = np.asarray(test_input_raw).astype('float32')
+    test_output = np.asarray(test_output_raw).astype('float32')
+    print('Test data size =', test_samples)
+
     if not os.path.exists(model_path):
         train_files = sorted(csv_files)
         print('{} files will be used for training'.format(len(train_files)))
@@ -90,25 +98,17 @@ def main():
                           loss='mean_squared_error',
                           metrics=['accuracy'])
 
-            history = model.fit(train_input,
-                                train_output,
-                                epochs=16,
-                                batch_size=256)
-
-            # if need_visualize_history:
-            #     plot_utils.plot_history(history)
+            model.fit(train_input,
+                      train_output,
+                      epochs=16,
+                      batch_size=256,
+                      validation_data=(test_input, test_output))
 
         model.save(model_path)
     else:
         model = load_model(model_path)
 
-    test_data = load_data(os.path.join(temp_folder, test_csv))
-    test_input_raw, test_output_raw, test_verification = prepare_data(test_data)
 
-    test_samples = len(test_input_raw)
-    test_input = np.asarray(test_input_raw).astype('float32')
-    test_output = np.asarray(test_output_raw).astype('float32')
-    print('Test data size =', test_samples)
 
     results = model.evaluate(test_input, test_output, verbose=1)
     print('results [loss, acc] =', results)
