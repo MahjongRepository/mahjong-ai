@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import csv
+import pickle
 import random
 import shutil
 import subprocess
@@ -8,6 +9,8 @@ from optparse import OptionParser
 import os
 import pandas as pd
 import numpy as np
+
+from protocol import NetworkData
 
 test_data_percentage = 5
 chunk_size = 50000
@@ -63,8 +66,16 @@ def main():
     # our test data had to be in separate file
     # we need to skip data rows from original file to extract test data
     print('Saving test.csv...')
+    test_file_path = os.path.join(temp_folder, 'test.csv')
     test_data = pd.read_csv(data_path, skiprows=data_rows)
-    test_data.to_csv(os.path.join(temp_folder, 'test.csv'), header=header, index=False)
+    test_data.to_csv(test_file_path, header=header, index=False)
+
+    # TODO: maybe we don't need to save csv at all
+    protocol = NetworkData()
+    protocol.parse_new_data(load_data(test_file_path))
+    protocol_test_path = os.path.join(temp_folder, 'test.p')
+    print('Saving test.p...')
+    pickle.dump(protocol, open(protocol_test_path, "wb"))
 
     # it is important to skip test rows there
     # otherwise we will mix train and test data
@@ -75,12 +86,30 @@ def main():
     )
     for i, chunk in enumerate(data):
         file_name = 'chunk_{:03}.csv'.format(i)
+        file_path = os.path.join(temp_folder, file_name)
         print('Saving {}...'.format(file_name))
-        chunk.to_csv(os.path.join(temp_folder, file_name), header=header, index=False)
+        chunk.to_csv(file_path, header=header, index=False)
+
+        protocol = NetworkData()
+        protocol.parse_new_data(load_data(file_path))
+        protocol_file_name = 'chunk_{:03}.p'.format(i)
+        protocol_file_path = os.path.join(temp_folder, protocol_file_name)
+        print('Saving {}...'.format(protocol_file_name))
+        pickle.dump(protocol, open(protocol_file_path, "wb"))
 
 
 def line_count(file):
     return int(subprocess.check_output('wc -l {}'.format(file), shell=True).split()[0])
+
+
+def load_data(path):
+    data = []
+    with open(path, 'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            if row['tenpai_player_waiting']:
+                data.append(row)
+    return data
 
 
 if __name__ == '__main__':

@@ -52,12 +52,12 @@ def main():
 
     temp_folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'temp')
     if not os.path.exists(temp_folder):
-        print('Folder with data is not exists. Run split_csv.py')
+        print('Folder with data is not exists. Run prepare_data.py')
         return
 
     csv_files = os.listdir(temp_folder)
     if not csv_files:
-        print('Folder with data is empty. Run split_csv.py')
+        print('Folder with data is empty. Run prepare_data.py')
         return
 
     if rebuild and os.path.exists(model_path):
@@ -77,6 +77,9 @@ def main():
         model.add(layers.Dense(tiles_unique, activation='sigmoid'))
 
         for train_file in train_files:
+            if not train_file.endswith('.csv'):
+                continue
+
             print('')
             print('Processing {}...'.format(train_file))
             data_path = os.path.join(temp_folder, train_file)
