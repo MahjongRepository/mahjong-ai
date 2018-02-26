@@ -17,7 +17,7 @@ Our main way to get data from replays.
 ## Guess waits in own hand
 
 1. `cd project/nn/`
-2. `python split_csv.py -f <path_to_data>.csv`
+2. `python prepare_data.py -f <path_to_data>.csv`
 3. `python own_hand_waits.py [-p] [-r] [-v]`
 
 `-r` - train model anew instead of trying to read saved model from file
@@ -29,7 +29,7 @@ Our main way to get data from replays.
 ## Betaori
 
 1. `cd project/nn/`
-2. `python split_csv.py -f <path_to_data>.csv`
+2. `python prepare_data.py -f <path_to_data>.csv`
 2. `python betaori.py [-p] [-r] [-v]`
 
 `-r` - train model anew instead of trying to read saved model from file
