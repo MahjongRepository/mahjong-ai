@@ -79,30 +79,32 @@ def main():
         model.add(layers.Dense(1024, activation='relu'))
         model.add(layers.Dense(tiles_unique, activation='tanh'))
 
-        for train_file in train_files:
+        for n_epoch in range(16):
             print('')
-            print('Processing {}...'.format(train_file))
-            data_path = os.path.join(temp_folder, train_file)
+            print('Processing epoch #', n_epoch)
+            for train_file in train_files:
+                print('Processing {}...'.format(train_file))
+                data_path = os.path.join(temp_folder, train_file)
 
-            data = load_data(data_path)
-            train_input_raw, train_output_raw, _ = prepare_data(data)
+                data = load_data(data_path)
+                train_input_raw, train_output_raw, _ = prepare_data(data)
 
-            train_samples = len(train_input_raw)
-            train_input = np.asarray(train_input_raw).astype('float32')
-            train_output = np.asarray(train_output_raw).astype('float32')
+                train_samples = len(train_input_raw)
+                train_input = np.asarray(train_input_raw).astype('float32')
+                train_output = np.asarray(train_output_raw).astype('float32')
 
-            print('Train data size =', train_samples)
+                print('Train data size =', train_samples)
 
-            # NB: need to configure
-            model.compile(optimizer='sgd',
-                          loss='mean_squared_error',
-                          metrics=['accuracy'])
+                # NB: need to configure
+                model.compile(optimizer='sgd',
+                              loss='mean_squared_error',
+                              metrics=['accuracy'])
 
-            model.fit(train_input,
-                      train_output,
-                      epochs=16,
-                      batch_size=256,
-                      validation_data=(test_input, test_output))
+                model.fit(train_input,
+                          train_output,
+                          epochs=1,
+                          batch_size=256,
+                          validation_data=(test_input, test_output))
 
         model.save(model_path)
     else:
