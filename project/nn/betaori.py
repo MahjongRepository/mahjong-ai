@@ -11,9 +11,7 @@ from mahjong.tile import TilesConverter
 from optparse import OptionParser
 import numpy as np
 
-import protocol
 from protocol import tiles_unique
-from protocol import tiles_num
 from protocol import input_size
 
 
@@ -90,9 +88,9 @@ def main():
         model.add(layers.Dense(1024, activation='relu'))
         model.add(layers.Dense(tiles_unique, activation='tanh'))
 
-        for n_epoch in range(16):
+        for n_epoch in range(48):
             print('')
-            print('Processing epoch #', n_epoch)
+            print('Processing epoch #{}...'.format(n_epoch))
             for train_file in train_files:
                 print('Processing {}...'.format(train_file))
                 data_path = os.path.join(temp_folder, train_file)
@@ -105,9 +103,9 @@ def main():
                 print('Train data size =', train_samples)
 
                 # NB: need to configure
+                # Need to try: sgd, adam, adagrad
                 model.compile(optimizer='sgd',
-                              loss='mean_squared_error',
-                              metrics=['accuracy'])
+                              loss='mean_squared_error')
 
                 model.fit(train_input,
                           train_output,
@@ -115,13 +113,26 @@ def main():
                           batch_size=256,
                           validation_data=(test_input, test_output))
 
-        model.save(model_path)
+            print('')
+            print('Predictions after epoch #{}'.format(n_epoch))
+            calculate_predictions(model,
+                                  test_input,
+                                  test_output,
+                                  test_verification,
+                                  False)
+
+            print('')
+            # We save model after each epoch
+            print('Saving model, please don\'t interrupt...')
+            model.save(model_path)
+            print('Model saved')
     else:
         model = load_model(model_path)
 
     results = model.evaluate(test_input, test_output, verbose=1)
-    print('results [loss, acc] =', results)
+    print('results: loss =', results)
 
+    print('Final predictions')
     calculate_predictions(model,
                           test_input,
                           test_output,
