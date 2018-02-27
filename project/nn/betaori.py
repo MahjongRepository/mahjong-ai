@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-import csv
-import itertools
 import os
 import pickle
 
@@ -11,10 +9,11 @@ from mahjong.tile import TilesConverter
 from optparse import OptionParser
 import numpy as np
 
-import protocol
 from protocol import tiles_unique
-from protocol import tiles_num
 from protocol import input_size
+
+# TODO: We are tied to tensorflow with this, maybe it can be avoided?
+import tensorflow as tf
 
 
 model_path = 'betaori.h5'
@@ -107,7 +106,7 @@ def main():
                 # NB: need to configure
                 model.compile(optimizer='sgd',
                               loss='mean_squared_error',
-                              metrics=['accuracy'])
+                              metrics=[min_wait_pos_metrics, max_wait_pos_metrics])
 
                 model.fit(train_input,
                           train_output,
@@ -147,6 +146,62 @@ def tiles_34_to_sting_unsorted(tiles):
 
 def tiles_136_to_sting_unsorted(tiles):
     return tiles_34_to_sting_unsorted([x // 4 for x in tiles])
+
+
+def print_elem(x):
+    print(x)
+
+
+def wait_pos_metrics(value, etalon):
+    tiles_by_danger = np.argsort(value)
+
+    waits = []
+
+    print(etalon)
+    print(etalon.shape)
+    # K.eval(etalon)
+    # print(K.eval(etalon))
+
+    print(tf.ndim(etalon))
+    # tf.map_fn(print_elem, etalon)
+
+    exit(0)
+
+    i = 0
+    for e in etalon:
+        if e > 0.99:
+            waits.append[i]
+        i += 1
+
+    sum_wait_pos = 0
+    min_wait_pos = len(tiles_by_danger)
+    max_wait_pos = 0
+    for w in waits:
+        pos = np.where(tiles_by_danger == (w // 4))[0].item(0)
+        if pos < min_wait_pos:
+            min_wait_pos = pos
+        if pos > max_wait_pos:
+            max_wait_pos = pos
+        sum_wait_pos += pos
+
+    avg_wait_pos = sum_wait_pos / len(waits)
+
+    return min_wait_pos, max_wait_pos, avg_wait_pos
+
+
+def min_wait_pos_metrics(value, etalon):
+    min_wait_pos, _, _ = wait_pos_metrics(value, etalon)
+    return min_wait_pos
+
+
+def max_wait_pos_metrics(value, etalon):
+    _, max_wait_pos, _ = wait_pos_metrics(value, etalon)
+    return max_wait_pos
+
+
+def avg_wait_pos_metrics(value, etalon):
+    _, _, avg_wait_pos = wait_pos_metrics(value, etalon)
+    return avg_wait_pos
 
 
 def calculate_predictions(model,
