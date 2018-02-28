@@ -18,7 +18,7 @@ logger = logging.getLogger('logs')
 class LoggingCallback(Callback):
 
     def on_epoch_end(self, epoch, logs={}):
-        msg = 'Epoch end. {}'.format(', '.join('%s: %f' % (k, v) for k, v in logs.items()))
+        msg = 'Epoch {}. {}'.format(epoch, ', '.join('%s: %f' % (k, v) for k, v in logs.items()))
         logger.info(msg)
 
 
@@ -46,62 +46,63 @@ class Betaori(object):
         logger.info('Test data size = {}'.format(test_samples))
 
         if not os.path.exists(self.model_path):
-            data_files_temp = os.listdir(self.data_path)
-            data_files = []
-            for f in data_files_temp:
-                if not f.endswith('.p'):
-                    continue
-                if f.endswith('test.p'):
-                    continue
-
-                data_files.append(f)
-
-            train_files = sorted(data_files)
-            logger.info('{} files will be used for training'.format(len(train_files)))
+            # data_files_temp = os.listdir(self.data_path)
+            # data_files = []
+            # for f in data_files_temp:
+            #     if not f.endswith('.p'):
+            #         continue
+            #     if f.endswith('test.p'):
+            #         continue
+            #
+            #     data_files.append(f)
+            #
+            # train_files = sorted(data_files)
+            # logger.info('{} files will be used for training'.format(len(train_files)))
 
             model = models.Sequential()
             model.add(layers.Dense(1024, activation='relu', input_shape=(input_size,)))
             model.add(layers.Dense(1024, activation='relu'))
             model.add(layers.Dense(tiles_unique, activation='tanh'))
 
-            for n_epoch in range(self.epochs):
-                logger.info('Processing epoch #{}...'.format(n_epoch))
-                for train_file in train_files:
-                    logger.info('Processing {}...'.format(train_file))
-                    data_path = os.path.join(self.data_path, train_file)
-                    train_data = pickle.load(open(data_path, "rb"))
+            # for n_epoch in range(self.epochs):
+                # logger.info('Processing epoch #{}...'.format(n_epoch))
+                # for train_file in train_files:
 
-                    train_samples = len(train_data.input_data)
-                    train_input = np.asarray(train_data.input_data).astype('float32')
-                    train_output = np.asarray(train_data.output_data).astype('float32')
+            train_file = 'chunk_000.p'
+            logger.info('Processing {}...'.format(train_file))
+            data_path = os.path.join(self.data_path, train_file)
+            train_data = pickle.load(open(data_path, "rb"))
 
-                    logger.info('Train data size = {}'.format(train_samples))
+            train_samples = len(train_data.input_data)
+            train_input = np.asarray(train_data.input_data).astype('float32')
+            train_output = np.asarray(train_data.output_data).astype('float32')
 
-                    # NB: need to configure
-                    # Need to try: sgd, adam, adagrad
-                    model.compile(optimizer='sgd',
-                                  loss='mean_squared_error')
+            logger.info('Train data size = {}'.format(train_samples))
 
-                    model.fit(
-                        train_input,
-                        train_output,
-                        epochs=1,
-                        batch_size=256,
-                        validation_data=(test_input, test_output),
-                        callbacks=[LoggingCallback()]
-                    )
+            # NB: need to configure
+            # Need to try: sgd, adam, adagrad
+            model.compile(optimizer='sgd',
+                          loss='mean_squared_error')
 
-                logger.info('Predictions after epoch #{}'.format(n_epoch))
-                self.calculate_predictions(model,
-                                           test_input,
-                                           test_output,
-                                           test_verification,
-                                           False)
+            model.fit(
+                train_input,
+                train_output,
+                epochs=self.epochs,
+                batch_size=256,
+                validation_data=(test_input, test_output),
+                callbacks=[LoggingCallback()]
+            )
 
-                # We save model after each epoch
-                logger.info('Saving model, please don\'t interrupt...')
-                model.save(self.model_path)
-                logger.info('Model saved')
+            self.calculate_predictions(model,
+                                       test_input,
+                                       test_output,
+                                       test_verification,
+                                       False)
+
+            # We save model after each epoch
+            logger.info('Saving model, please don\'t interrupt...')
+            model.save(self.model_path)
+            logger.info('Model saved')
         else:
             model = load_model(self.model_path)
 
