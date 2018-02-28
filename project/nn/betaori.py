@@ -206,7 +206,7 @@ class Betaori(object):
             sum_min_wait_pos += min_wait_pos
             sum_max_wait_pos += max_wait_pos
             sum_avg_wait_pos += avg_wait_pos
-            sum_genbutsu_error += sum_genbutsu_error
+            sum_genbutsu_error += genbutsu_error
 
         avg_min_wait_pos = sum_min_wait_pos * 1.0 / i
         avg_max_wait_pos = sum_max_wait_pos * 1.0 / i
