@@ -1,14 +1,25 @@
 # -*- coding: utf-8 -*-
+import logging
 import os
 import pickle
 
 from keras import layers
 from keras import models
+from keras.callbacks import Callback
 from keras.models import load_model
 from mahjong.tile import TilesConverter
 import numpy as np
 
 from nn.utils.protocols.betaori_protocol import tiles_unique, input_size
+
+logger = logging.getLogger('logs')
+
+
+class LoggingCallback(Callback):
+
+    def on_epoch_end(self, epoch, logs={}):
+        msg = 'Epoch end. {}'.format(', '.join('%s: %f' % (k, v) for k, v in logs.items()))
+        logger.info(msg)
 
 
 class Betaori(object):
@@ -32,7 +43,7 @@ class Betaori(object):
         test_input = np.asarray(test_data.input_data).astype('float32')
         test_output = np.asarray(test_data.output_data).astype('float32')
         test_verification = test_data.verification_data
-        print('Test data size =', test_samples)
+        logger.info('Test data size = {}'.format(test_samples))
 
         if not os.path.exists(self.model_path):
             data_files_temp = os.listdir(self.data_path)
@@ -46,7 +57,7 @@ class Betaori(object):
                 data_files.append(f)
 
             train_files = sorted(data_files)
-            print('{} files will be used for training'.format(len(train_files)))
+            logger.info('{} files will be used for training'.format(len(train_files)))
 
             model = models.Sequential()
             model.add(layers.Dense(1024, activation='relu', input_shape=(input_size,)))
@@ -54,10 +65,9 @@ class Betaori(object):
             model.add(layers.Dense(tiles_unique, activation='tanh'))
 
             for n_epoch in range(self.epochs):
-                print('')
-                print('Processing epoch #{}...'.format(n_epoch))
+                logger.info('Processing epoch #{}...'.format(n_epoch))
                 for train_file in train_files:
-                    print('Processing {}...'.format(train_file))
+                    logger.info('Processing {}...'.format(train_file))
                     data_path = os.path.join(self.data_path, train_file)
                     train_data = pickle.load(open(data_path, "rb"))
 
@@ -65,39 +75,40 @@ class Betaori(object):
                     train_input = np.asarray(train_data.input_data).astype('float32')
                     train_output = np.asarray(train_data.output_data).astype('float32')
 
-                    print('Train data size =', train_samples)
+                    logger.info('Train data size = {}'.format(train_samples))
 
                     # NB: need to configure
                     # Need to try: sgd, adam, adagrad
                     model.compile(optimizer='sgd',
                                   loss='mean_squared_error')
 
-                    model.fit(train_input,
-                              train_output,
-                              epochs=1,
-                              batch_size=256,
-                              validation_data=(test_input, test_output))
+                    model.fit(
+                        train_input,
+                        train_output,
+                        epochs=1,
+                        batch_size=256,
+                        validation_data=(test_input, test_output),
+                        callbacks=[LoggingCallback()]
+                    )
 
-                print('')
-                print('Predictions after epoch #{}'.format(n_epoch))
+                logger.info('Predictions after epoch #{}'.format(n_epoch))
                 self.calculate_predictions(model,
                                            test_input,
                                            test_output,
                                            test_verification,
                                            False)
 
-                print('')
                 # We save model after each epoch
-                print('Saving model, please don\'t interrupt...')
+                logger.info('Saving model, please don\'t interrupt...')
                 model.save(self.model_path)
-                print('Model saved')
+                logger.info('Model saved')
         else:
             model = load_model(self.model_path)
 
         results = model.evaluate(test_input, test_output, verbose=1)
-        print('results: loss =', results)
+        logger.info('results: loss = {}'.format(results))
 
-        print('Final predictions')
+        logger.info('Final predictions')
         self.calculate_predictions(model,
                                    test_input,
                                    test_output,
@@ -128,7 +139,7 @@ class Betaori(object):
                               test_verification,
                               need_print_predictions):
         predictions = model.predict(test_input, verbose=1)
-        print('predictions shape = ', predictions.shape)
+        logger.info('predictions shape = {}'.format(predictions.shape))
 
         sum_min_wait_pos = 0
         sum_max_wait_pos = 0
@@ -174,21 +185,21 @@ class Betaori(object):
             genbutsu_error = avg_genbutsu_pos - expected_avg_genbutsu_pos
 
             if need_print_predictions:
-                print('============================================')
-                print('hand:', TilesConverter.to_one_line_string(hand))
-                print('discards:', self.tiles_136_to_sting_unsorted(discards))
+                logger.info('============================================')
+                logger.info('hand: {}'.format(TilesConverter.to_one_line_string(hand)))
+                logger.info('discards: {}'.format(self.tiles_136_to_sting_unsorted(discards)))
                 if melds:
-                    print('melds:', ' '.join([TilesConverter.to_one_line_string(x) for x in melds]))
-                print('waits:', TilesConverter.to_one_line_string(waits))
-                print('tiles_by_danger:', self.tiles_34_to_sting_unsorted(tiles_by_danger))
-                print('min_wait_pos:', min_wait_pos)
-                print('max_wait_pos:', max_wait_pos)
-                print('avg_wait_pos:', avg_wait_pos)
-                print('num_genbutsu:', num_genbutsu)
-                print('avg_genbutsu_pos:', avg_genbutsu_pos)
-                print('expected_avg_genbutsu_pos:', expected_avg_genbutsu_pos)
-                print('genbutsu_error:', genbutsu_error)
-                print('============================================')
+                    logger.info('melds: {}'.format(' '.join([TilesConverter.to_one_line_string(x) for x in melds])))
+                logger.info('waits: {}'.format(TilesConverter.to_one_line_string(waits)))
+                logger.info('tiles_by_danger: {}'.format(self.tiles_34_to_sting_unsorted(tiles_by_danger)))
+                logger.info('min_wait_pos: {}'.format(min_wait_pos))
+                logger.info('max_wait_pos: {}'.format(max_wait_pos))
+                logger.info('avg_wait_pos: {}'.format(avg_wait_pos))
+                logger.info('num_genbutsu: {}'.format(num_genbutsu))
+                logger.info('avg_genbutsu_pos: {}'.format(avg_genbutsu_pos))
+                logger.info('expected_avg_genbutsu_pos: {}'.format(expected_avg_genbutsu_pos))
+                logger.info('genbutsu_error: {}'.format(genbutsu_error))
+                logger.info('============================================')
 
             i += 1
 
@@ -202,8 +213,8 @@ class Betaori(object):
         avg_avg_wait_pos = sum_avg_wait_pos * 1.0 / i
         avg_genbutsu_error = sum_genbutsu_error * 1.0 / i
 
-        print('Prediction results:')
-        print('avg_min_wait_pos = %f (%f)' % (avg_min_wait_pos, avg_min_wait_pos / tiles_unique))
-        print('avg_max_wait_pos = %f (%f)' % (avg_max_wait_pos, avg_max_wait_pos / tiles_unique))
-        print('avg_avg_wait_pos = %f (%f)' % (avg_avg_wait_pos, avg_avg_wait_pos / tiles_unique))
-        print('avg_genbutsu_error =', avg_genbutsu_error)
+        logger.info('Prediction results:')
+        logger.info('avg_min_wait_pos = %f (%f)' % (avg_min_wait_pos, avg_min_wait_pos / tiles_unique))
+        logger.info('avg_max_wait_pos = %f (%f)' % (avg_max_wait_pos, avg_max_wait_pos / tiles_unique))
+        logger.info('avg_avg_wait_pos = %f (%f)' % (avg_avg_wait_pos, avg_avg_wait_pos / tiles_unique))
+        logger.info('avg_genbutsu_error = {}'.format(avg_genbutsu_error))

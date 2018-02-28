@@ -3,6 +3,7 @@ import os
 from optparse import OptionParser
 
 from nn.betaori import Betaori
+from nn.utils.logger import set_up_logging
 
 
 def main():
@@ -34,6 +35,8 @@ def main():
     if not os.listdir(data_dir):
         print('Directory with data is empty. Run prepare_data.py')
         return
+
+    set_up_logging('betaori')
 
     betaori = Betaori(root_dir, data_dir, print_predictions)
 

@@ -1,6 +1,7 @@
 env
 .idea
 project/data
+project/logs
 project/processed_data
 project/visual/data
 
