@@ -18,7 +18,7 @@ logger = logging.getLogger('logs')
 class LoggingCallback(Callback):
 
     def on_epoch_end(self, epoch, logs={}):
-        msg = 'Epoch {}. {}'.format(epoch, ', '.join('%s: %f' % (k, v) for k, v in logs.items()))
+        msg = 'Epoch ended. {}'.format(', '.join('%s: %f' % (k, v) for k, v in logs.items()))
         logger.info(msg)
 
 
@@ -64,10 +64,6 @@ class Betaori(object):
             model.add(layers.Dense(1024, activation='relu'))
             model.add(layers.Dense(tiles_unique, activation='tanh'))
 
-            # for n_epoch in range(self.epochs):
-                # logger.info('Processing epoch #{}...'.format(n_epoch))
-                # for train_file in train_files:
-
             train_file = 'chunk_000.p'
             logger.info('Processing {}...'.format(train_file))
             data_path = os.path.join(self.data_path, train_file)
@@ -84,25 +80,29 @@ class Betaori(object):
             model.compile(optimizer='sgd',
                           loss='mean_squared_error')
 
-            model.fit(
-                train_input,
-                train_output,
-                epochs=self.epochs,
-                batch_size=256,
-                validation_data=(test_input, test_output),
-                callbacks=[LoggingCallback()]
-            )
+            for n_epoch in range(0, self.epochs):
+                logger.info('Processing epoch #{}...'.format(n_epoch))
 
-            self.calculate_predictions(model,
-                                       test_input,
-                                       test_output,
-                                       test_verification,
-                                       False)
+                model.fit(
+                    train_input,
+                    train_output,
+                    epochs=1,
+                    batch_size=256,
+                    validation_data=(test_input, test_output),
+                    callbacks=[LoggingCallback()]
+                )
 
-            # We save model after each epoch
-            logger.info('Saving model, please don\'t interrupt...')
-            model.save(self.model_path)
-            logger.info('Model saved')
+                logger.info('Predictions after epoch #{}'.format(n_epoch))
+                self.calculate_predictions(model,
+                                           test_input,
+                                           test_output,
+                                           test_verification,
+                                           False)
+
+                # We save model after each epoch
+                logger.info('Saving model, please don\'t interrupt...')
+                model.save(self.model_path)
+                logger.info('Model saved')
         else:
             model = load_model(self.model_path)
 
