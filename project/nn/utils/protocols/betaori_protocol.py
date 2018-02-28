@@ -158,10 +158,11 @@ class BetaoriProtocol(object):
             tenpai_discards = BetaoriProtocol.prepare_discards(row['tenpai_player_discards'])
             tenpai_melds = BetaoriProtocol.prepare_melds(row['tenpai_player_melds'])
 
-            for x in tenpai_discards:
-                # Here we give hint to network during training: tiles from discard
-                # give output "-1":
-                waiting[x[0] // 4] = -1
+            # Try without hint for now
+            # for x in tenpai_discards:
+            #     # Here we give hint to network during training: tiles from discard
+            #     # give output "-1":
+            #     waiting[x[0] // 4] = -1
 
             waiting_temp = [x for x in row['tenpai_player_waiting'].split(',')]
             for x in waiting_temp:

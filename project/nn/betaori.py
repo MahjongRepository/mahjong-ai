@@ -62,7 +62,7 @@ class Betaori(object):
             model = models.Sequential()
             model.add(layers.Dense(1024, activation='relu', input_shape=(input_size,)))
             model.add(layers.Dense(1024, activation='relu'))
-            model.add(layers.Dense(tiles_unique, activation='tanh'))
+            model.add(layers.Dense(tiles_unique, activation='sigmoid'))
 
             train_file = 'chunk_000.p'
             logger.info('Processing {}...'.format(train_file))
@@ -77,8 +77,8 @@ class Betaori(object):
 
             # NB: need to configure
             # Need to try: sgd, adam, adagrad
-            model.compile(optimizer='sgd',
-                          loss='mean_squared_error')
+            model.compile(optimizer='adam',
+                          loss='binary_crossentropy')
 
             for n_epoch in range(0, self.epochs):
                 logger.info('Processing epoch #{}...'.format(n_epoch))
