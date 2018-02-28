@@ -24,7 +24,7 @@ class LoggingCallback(Callback):
 
 class Betaori(object):
     model_name = 'betaori.h5'
-    epochs = 16
+    epochs = 48
 
     def __init__(self, root_dir, data_path, print_predictions):
         self.model_path = os.path.join(root_dir, self.model_name)
