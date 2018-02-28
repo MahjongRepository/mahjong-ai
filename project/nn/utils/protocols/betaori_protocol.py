@@ -2,13 +2,12 @@
 import csv
 import itertools
 
-
 tiles_unique = 34
 tiles_num = tiles_unique * 4
 input_size = tiles_num * 5 + tiles_num * 5 * 2 + tiles_num + tiles_num // 4
 
 
-class NetworkData:
+class BetaoriProtocol(object):
     def __init__(self):
         self.input_data = []
         self.output_data = []
@@ -34,7 +33,7 @@ class NetworkData:
         discard_order_value = 1
         discard_order_step = 0.025
 
-        discards_temp = NetworkData.prepare_discards(discards_data)
+        discards_temp = BetaoriProtocol.prepare_discards(discards_data)
         for x in discards_temp:
             tile = x[0]
             is_tsumogiri = x[1]
@@ -48,7 +47,7 @@ class NetworkData:
 
             out_tiles[tile // 4] += 0.25
 
-        melds_temp = NetworkData.prepare_melds(melds_data)
+        melds_temp = BetaoriProtocol.prepare_melds(melds_data)
         for x in melds_temp:
             tiles = x[0]
             for tile in tiles:
@@ -98,19 +97,19 @@ class NetworkData:
             # total number of out tiles (all discards, all melds, player hand, dora indicators)
             out_tiles = [0 for x in range(tiles_num // 4)]
 
-            discards, tsumogiri, after_meld, melds, discards_order, out_tiles = NetworkData.process_discards(
+            discards, tsumogiri, after_meld, melds, discards_order, out_tiles = BetaoriProtocol.process_discards(
                 row['tenpai_player_discards'],
                 row['tenpai_player_melds'],
                 out_tiles
             )
 
-            sp_discards, sp_tsumogiri, sp_after_meld, sp_melds, sp_discards_order, out_tiles = NetworkData.process_discards(
+            sp_discards, sp_tsumogiri, sp_after_meld, sp_melds, sp_discards_order, out_tiles = BetaoriProtocol.process_discards(
                 row['second_player_discards'],
                 row['second_player_melds'],
                 out_tiles
             )
 
-            tp_discards, tp_tsumogiri, tp_after_meld, tp_melds, tp_discards_order, out_tiles = NetworkData.process_discards(
+            tp_discards, tp_tsumogiri, tp_after_meld, tp_melds, tp_discards_order, out_tiles = BetaoriProtocol.process_discards(
                 row['third_player_discards'],
                 row['third_player_melds'],
                 out_tiles
@@ -146,8 +145,7 @@ class NetworkData:
             ))
 
             if len(input_cur) != input_size:
-                print("Internal error: len(input_cur) should be %d, but is %d" %
-                      (input_size, len(input_cur)))
+                print("Internal error: len(input_cur) should be %d, but is %d" % (input_size, len(input_cur)))
                 exit(1)
 
             self.input_data.append(input_cur)
@@ -157,8 +155,8 @@ class NetworkData:
             # we give value 0
             waiting = [0 for x in range(tiles_num // 4)]
 
-            tenpai_discards = NetworkData.prepare_discards(row['tenpai_player_discards'])
-            tenpai_melds = NetworkData.prepare_melds(row['tenpai_player_melds'])
+            tenpai_discards = BetaoriProtocol.prepare_discards(row['tenpai_player_discards'])
+            tenpai_melds = BetaoriProtocol.prepare_melds(row['tenpai_player_melds'])
 
             for x in tenpai_discards:
                 # Here we give hint to network during training: tiles from discard
@@ -178,11 +176,11 @@ class NetworkData:
 
             # Use it only for visual debugging!
             tenpai_player_hand = [int(x) for x in row['tenpai_player_hand'].split(',')]
-
-            verification_cur = []
-            verification_cur.append(tenpai_player_hand)
-            verification_cur.append(tenpai_discards)
-            verification_cur.append(tenpai_melds)
-            verification_cur.append(waiting_temp)
+            verification_cur = [
+                tenpai_player_hand,
+                tenpai_discards,
+                tenpai_melds,
+                waiting_temp
+            ]
 
             self.verification_data.append(verification_cur)

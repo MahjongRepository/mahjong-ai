@@ -6,35 +6,31 @@ For now only **Python 3.5+** is supported.
 
 You can find information about it there: https://github.com/MahjongRepository/phoenix-logs
 
-## CSV exporter
+## Data parser
 
-`python prepare_data.py -p /path/to/db/2017.db -e csv -f output.csv`
+This script will prepare raw data for tests.
 
-Our main way to get data from replays.
+`python parse_data.py -d /path/to/db/2017.db -f output.csv`
 
-# Neural network testing:
+# Neural network scripts
 
 ## Guess waits in own hand
 
-1. `cd project/nn/`
-2. `python prepare_data.py -f <path_to_data>.csv`
-3. `python own_hand_waits.py [-p] [-r] [-v]`
+1. `cd project`
+2. `python prepare_data.py -f <path_to_data>.csv -p hand`
+3. `python run_own_hand_waits.py [-r] [-p]`
 
 `-r` - train model anew instead of trying to read saved model from file
-
-`-v` - visualize loss and accuracy on training and validation data for all training epochs
 
 `-p` - check NN guesses and print all mistakes
 
 ## Betaori
 
-1. `cd project/nn/`
-2. `python prepare_data.py -f <path_to_data>.csv`
-2. `python betaori.py [-p] [-r] [-v]`
+1. `cd project`
+2. `python prepare_data.py -f <path_to_data>.csv -p betaori`
+2. `python run_betaori.py [-r] [-p]`
 
 `-r` - train model anew instead of trying to read saved model from file
-
-`-v` - visualize loss and accuracy on training and validation data for all training epochs
 
 `-p` - check NN guesses and print all mistakes
 

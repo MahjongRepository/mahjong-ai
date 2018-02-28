@@ -1,166 +1,139 @@
 # -*- coding: utf-8 -*-
-import bz2
 import csv
-import json
-import random
-import sqlite3
-import datetime
+import pickle
+import shutil
+import subprocess
 from optparse import OptionParser
 
 import os
+import pandas as pd
+import numpy as np
 
-from parser.csv_exporter import CSVExporter
-from parser.json_exporter import JsonExporter
-from parser.parser import LogParser
+from nn.utils.protocols.betaori_protocol import BetaoriProtocol
+from nn.utils.protocols.own_hand_protocol import OwnHandProtocol
 
-data_directory = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'visual', 'data')
-if not os.path.exists(data_directory):
-    os.mkdir(data_directory)
+test_data_percentage = 5
+chunk_size = 50000
 
 
 def main():
     parser = OptionParser()
 
-    parser.add_option('-p', '--path',
+    parser.add_option('-f', '--train-path',
                       type='string',
-                      help='Path to .sqlite3 db with logs content')
+                      help='Path to .csv with train data.')
 
-    parser.add_option('-e', '--exporter',
+    parser.add_option('-p', '--protocol',
                       type='string',
-                      help='Format to export data: json or csv',
-                      default='json')
-
-    parser.add_option('-f', '--file-csv',
-                      type='string',
-                      help='Where to save CSV')
-
-    parser.add_option('-l', '--limit',
-                      type='string',
-                      help='For debugging',
-                      default='unlimited')
+                      help='hand or betaori',
+                      default='betaori')
 
     opts, _ = parser.parse_args()
 
-    db_path = opts.path
-    export_format = opts.exporter
-    limit = opts.limit
-    csv_file = opts.file_csv
+    data_path = opts.train_path
+    if not data_path:
+        parser.error('Path to .csv with train data is not given.')
 
-    if not db_path:
-        parser.error('Path to db is not given with -p flag.')
+    protocol_string = opts.protocol
+    if protocol_string not in ['hand', 'betaori']:
+        parser.error('Protocol hand to be hand or betaori')
 
-    if export_format not in ['json', 'csv']:
-        parser.error('Not valid exported format. Supported formatters: json, csv')
+    print('{} protocol will be used.'.format(protocol_string))
 
-    if export_format == 'csv' and not csv_file:
-        parser.error('CSV file is not given with -f flag.')
-
-    print('Loading and decompressing logs content...')
-    logs = load_logs(db_path, limit)
-
-    parser = LogParser()
-
-    if os.path.exists(csv_file):
-        print('')
-        print('Warning! {} already exists!'.format(csv_file))
-        print('')
+    if protocol_string == 'hand':
+        protocol = OwnHandProtocol()
     else:
-        # initial file header
-        if export_format == 'csv':
-            with open(csv_file, 'w') as f:
-                writer = csv.writer(f)
-                writer.writerow(CSVExporter.header())
+        protocol = BetaoriProtocol()
 
-    processed = 0
-    processed_tenpais = 0
-    count_of_logs = len(logs)
-    print(get_date_string())
-    print('Starting processing...')
+    print('Chunk size: {}, test data percentage: {}'.format(chunk_size, test_data_percentage), end='\n\n')
 
-    for log_data in logs:
-        if processed > 0 and processed % 1000 == 0:
-            print('')
-            print(get_date_string())
-            print('Processed logs: {}/{}'.format(processed, count_of_logs))
-            print('With {} hands'.format(processed_tenpais))
+    root_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'processed_data')
+    if not os.path.exists(root_dir):
+        os.mkdir(root_dir)
 
-        game = parser.get_game_hands(log_data['log_content'], log_data['log_id'])
+    data_dir = os.path.join(root_dir, protocol_string)
+    if os.path.exists(data_dir):
+        print('Data directory already exists. It was deleted.', end='\n\n')
+        shutil.rmtree(data_dir)
 
-        tenpai_players = parser.extract_tenpai_players(game)
-        processed_tenpais += len(tenpai_players)
+    os.mkdir(data_dir)
 
-        if export_format == 'json':
-            save_json_data(tenpai_players)
+    total_count = line_count(data_path)
+    test_count = int((total_count / 100.0) * test_data_percentage)
 
-        if export_format == 'csv':
-            save_csv_data(tenpai_players, csv_file)
+    # because of our data we need to select three values in a row
+    test_count = round(test_count / 3)
+    indices_with_step_three = list(range(1, total_count, 3))
+    random_indices = np.random.choice(indices_with_step_three, test_count)
+    test_rows = []
+    for x in random_indices:
+        test_rows.append(x)
+        test_rows.append(x + 1)
+        test_rows.append(x + 2)
 
-        processed += 1
+    data_rows = list(set([x for x in range(0, total_count)]) - set(test_rows))
 
-    print('End')
-    print('Total hands {}'.format(processed_tenpais))
+    print('Original data size: {}'.format(total_count))
+    print('Train data size: {}'.format(len(data_rows)))
+    print('Test data size: {}'.format(len(test_rows)), end='\n\n')
 
+    # pandas didn't add correct headers to csv by default
+    # so we had to do it manually
+    with open(data_path, 'r') as f:
+        reader = csv.reader(f)
+        header = next(reader)
 
-def save_json_data(tenpai_players):
-    for player in tenpai_players:
-        # there is no sense to store all data in .json format
-        # for debug let's use only small number of tenpai hands
-        if random.random() < 0.999:
-            continue
+    # our test data had to be in separate file
+    # we need to skip data rows from original file to extract test data
+    print('Saving test.csv...')
+    test_file_path = os.path.join(data_dir, 'test.csv')
+    test_data = pd.read_csv(data_path, skiprows=data_rows)
+    test_data.to_csv(test_file_path, header=header, index=False)
 
-        file_name = '{}_{}_{}.json'.format(
-            player.table.log_id,
-            player.seat,
-            player.table.step,
-        )
-        print('http://127.0.0.1:8010/?hand={}'.format(file_name))
+    # TODO: maybe we don't need to save csv at all
+    protocol.parse_new_data(load_data(test_file_path))
+    protocol_test_path = os.path.join(data_dir, 'test.p')
+    print('Saving test.p...')
+    pickle.dump(protocol, open(protocol_test_path, "wb"))
 
-        file_path = os.path.join(data_directory, file_name)
-        if os.path.exists(file_path):
-            os.remove(file_path)
+    # it is important to skip test rows there
+    # otherwise we will mix train and test data
+    data = pd.read_csv(
+        data_path,
+        chunksize=chunk_size,
+        skiprows=test_rows,
+    )
 
-        with open(file_path, 'w') as f:
-            f.write(json.dumps(JsonExporter.export_player(player)))
+    for i, chunk in enumerate(data):
+        file_name = 'chunk_{:03}.csv'.format(i)
+        file_path = os.path.join(data_dir, file_name)
+        print('Saving {}...'.format(file_name))
+        chunk.to_csv(file_path, header=header, index=False)
 
-
-def save_csv_data(tenpai_players, csv_file):
-    with open(csv_file, 'a') as f:
-        writer = csv.writer(f)
-        for tenpai_player in tenpai_players:
-            for player in tenpai_player.table.players:
-                if player.seat != tenpai_player.seat:
-                    writer.writerow(CSVExporter.export_player(tenpai_player, player))
-
-
-def load_logs(db_path, limit):
-    """
-    Load logs from db and decompress logs content.
-    How to download games content you can learn there: https://github.com/MahjongRepository/phoenix-logs
-    """
-    connection = sqlite3.connect(db_path)
-
-    with connection:
-        cursor = connection.cursor()
-        if limit == 'unlimited':
-            cursor.execute('SELECT log_id, log_content FROM logs where is_hirosima = 0;')
+        if protocol_string == 'hand':
+            protocol = OwnHandProtocol()
         else:
-            limit = int(limit)
-            cursor.execute('SELECT log_id, log_content FROM logs where is_hirosima = 0 LIMIT ?;', [limit])
+            protocol = BetaoriProtocol()
 
-        data = cursor.fetchall()
-
-    results = []
-    for x in data:
-        results.append({
-            'log_id': x[0],
-            'log_content': bz2.decompress(x[1]).decode('utf-8')
-        })
-
-    return results
+        protocol.parse_new_data(load_data(file_path))
+        protocol_file_name = 'chunk_{:03}.p'.format(i)
+        protocol_file_path = os.path.join(data_dir, protocol_file_name)
+        print('Saving {}...'.format(protocol_file_name))
+        pickle.dump(protocol, open(protocol_file_path, "wb"))
 
 
-def get_date_string():
-    return datetime.datetime.now().strftime('%H:%M:%S')
+def line_count(file):
+    return int(subprocess.check_output('wc -l {}'.format(file), shell=True).split()[0])
+
+
+def load_data(path):
+    data = []
+    with open(path, 'r') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            if row['tenpai_player_waiting']:
+                data.append(row)
+    return data
 
 
 if __name__ == '__main__':

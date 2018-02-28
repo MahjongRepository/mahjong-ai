@@ -1,7 +1,7 @@
 env
 .idea
 project/data
+project/processed_data
 project/visual/data
-project/nn/temp
 
 *.h5
