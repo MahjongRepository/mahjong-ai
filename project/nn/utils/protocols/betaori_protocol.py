@@ -5,7 +5,7 @@ import itertools
 class BetaoriProtocol(object):
     tiles_unique = 34
     tiles_num = tiles_unique * 4
-    input_size = tiles_num * 5 + tiles_num * 5 * 2 + tiles_num + tiles_num // 4
+    input_size = tiles_num * 5 + tiles_num * 3 * 2 + tiles_num + tiles_num // 4
 
     def __init__(self):
         self.input_data = []
@@ -20,7 +20,7 @@ class BetaoriProtocol(object):
         # Seconds row - tsumogiri flag
         # Third row - "after meld" flag
         # Fourth row - tile is present in open set
-        # Fifth row - how long ago tile was discarded, 1 for first discad,
+        # Fifth row - how long ago tile was discarded, 1 for first discard,
         #             and decreases by 0.025 for each following discard
         # NB: this should correspond to input_size variable!
         discards = [0 for x in range(BetaoriProtocol.tiles_num)]
@@ -134,13 +134,13 @@ class BetaoriProtocol(object):
                 melds,
                 discards_order,
                 sp_discards,
-                sp_tsumogiri,
-                sp_after_meld,
+                # sp_tsumogiri,
+                # sp_after_meld,
                 sp_melds,
                 sp_discards_order,
                 tp_discards,
-                tp_tsumogiri,
-                tp_after_meld,
+                # tp_tsumogiri,
+                # tp_after_meld,
                 tp_melds,
                 tp_discards_order,
                 player_hand,
