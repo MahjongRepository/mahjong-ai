@@ -24,7 +24,7 @@ class LoggingCallback(Callback):
 
 class Betaori(object):
     model_name = 'betaori.h5'
-    epochs = 48
+    epochs = 8
 
     def __init__(self, root_dir, data_path, print_predictions):
         self.model_path = os.path.join(root_dir, self.model_name)
@@ -64,6 +64,11 @@ class Betaori(object):
             model.add(layers.Dense(1024, activation='relu'))
             model.add(layers.Dense(tiles_unique, activation='tanh'))
 
+            # NB: need to configure
+            # Need to try: sgd, adam, adagrad
+            model.compile(optimizer='sgd',
+                          loss='mean_squared_error')
+
             for n_epoch in range(self.epochs):
                 logger.info('Processing epoch #{}...'.format(n_epoch))
                 for train_file in train_files:
@@ -76,11 +81,6 @@ class Betaori(object):
                     train_output = np.asarray(train_data.output_data).astype('float32')
 
                     logger.info('Train data size = {}'.format(train_samples))
-
-                    # NB: need to configure
-                    # Need to try: sgd, adam, adagrad
-                    model.compile(optimizer='sgd',
-                                  loss='mean_squared_error')
 
                     model.fit(
                         train_input,
