@@ -179,6 +179,8 @@ class Betaori(object):
                 temp = x.split(';')
                 waits.append(int(temp[0]))
 
+            num_waits = len(waits)
+
             sum_wait_pos = 0
             min_wait_pos = len(tiles_by_danger)
             max_wait_pos = 0
@@ -220,20 +222,24 @@ class Betaori(object):
                 logger.info('genbutsu_error: {}'.format(genbutsu_error))
                 logger.info('============================================')
 
-            i += 1
+            avg_pos_offset = (((num_waits - 1) * num_waits) / 2) / num_waits
 
-            sum_min_wait_pos += min_wait_pos
-            sum_max_wait_pos += max_wait_pos
-            sum_avg_wait_pos += avg_wait_pos
+            # Here we adjust out values, so they are 0 in worst-case scenario
+            # and 1 in best-case scenario
+            sum_min_wait_pos += (min_wait_pos / (BetaoriProtocol.tiles_unique - num_waits))
+            sum_max_wait_pos += ((max_wait_pos - num_waits) / (BetaoriProtocol.tiles_unique - num_waits))
+            sum_avg_wait_pos += ((avg_wait_pos - avg_pos_offset) / (BetaoriProtocol.tiles_unique - num_waits))
             sum_genbutsu_error += genbutsu_error
 
-        avg_min_wait_pos = sum_min_wait_pos * 1.0 / i
-        avg_max_wait_pos = sum_max_wait_pos * 1.0 / i
-        avg_avg_wait_pos = sum_avg_wait_pos * 1.0 / i
-        avg_genbutsu_error = sum_genbutsu_error * 1.0 / i
+            i += 1
+
+        avg_min_wait_pos = sum_min_wait_pos / i
+        avg_max_wait_pos = sum_max_wait_pos / i
+        avg_avg_wait_pos = sum_avg_wait_pos / i
+        avg_genbutsu_error = sum_genbutsu_error / i
 
         logger.info('Prediction results:')
-        logger.info('avg_min_wait_pos = %f (%f)' % (avg_min_wait_pos, avg_min_wait_pos / BetaoriProtocol.tiles_unique))
-        logger.info('avg_max_wait_pos = %f (%f)' % (avg_max_wait_pos, avg_max_wait_pos / BetaoriProtocol.tiles_unique))
-        logger.info('avg_avg_wait_pos = %f (%f)' % (avg_avg_wait_pos, avg_avg_wait_pos / BetaoriProtocol.tiles_unique))
+        logger.info('avg_min_wait_pos = {}'.format(avg_min_wait_pos))
+        logger.info('avg_max_wait_pos = {}'.format(avg_max_wait_pos))
+        logger.info('avg_avg_wait_pos = {}'.format(avg_avg_wait_pos))
         logger.info('avg_genbutsu_error = {}'.format(avg_genbutsu_error))
