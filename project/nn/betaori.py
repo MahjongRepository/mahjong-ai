@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+import math
 import os
 import pickle
 
@@ -73,7 +74,7 @@ class Betaori(object):
             number_of_examples = total_data_size // BetaoriProtocol.input_size
             logger.info('Train data size: {}'.format(number_of_examples))
 
-            chunks = int(number_of_examples / self.chunk_size)
+            chunks = int(math.ceil(number_of_examples / self.chunk_size))
             # it happens when chunk_size > number_of_examples
             if chunks == 0:
                 chunks = 1
