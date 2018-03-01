@@ -7,10 +7,11 @@ from keras import layers
 from keras import models
 from keras.callbacks import Callback
 from keras.models import load_model
+from keras.utils import HDF5Matrix
 from mahjong.tile import TilesConverter
 import numpy as np
 
-from nn.utils.protocols.betaori_protocol import tiles_unique, input_size
+from nn.utils.protocols.betaori_protocol import BetaoriProtocol
 
 logger = logging.getLogger('logs')
 
@@ -18,13 +19,14 @@ logger = logging.getLogger('logs')
 class LoggingCallback(Callback):
 
     def on_epoch_end(self, epoch, logs={}):
-        msg = 'Epoch end. {}'.format(', '.join('%s: %f' % (k, v) for k, v in logs.items()))
+        msg = '{}'.format(', '.join('%s: %f' % (k, v) for k, v in logs.items()))
         logger.info(msg)
 
 
 class Betaori(object):
     model_name = 'betaori.h5'
     epochs = 8
+    chunk_size = 50000
 
     def __init__(self, root_dir, data_path, print_predictions):
         self.model_path = os.path.join(root_dir, self.model_name)
@@ -46,45 +48,50 @@ class Betaori(object):
         logger.info('Test data size = {}'.format(test_samples))
 
         if not os.path.exists(self.model_path):
-            data_files_temp = os.listdir(self.data_path)
-            data_files = []
-            for f in data_files_temp:
-                if not f.endswith('.p'):
-                    continue
-                if f.endswith('test.p'):
-                    continue
-
-                data_files.append(f)
-
-            train_files = sorted(data_files)
-            logger.info('{} files will be used for training'.format(len(train_files)))
-
             model = models.Sequential()
-            model.add(layers.Dense(1024, activation='relu', input_shape=(input_size,)))
+            model.add(layers.Dense(1024, activation='relu', input_shape=(BetaoriProtocol.input_size,)))
             model.add(layers.Dense(1024, activation='relu'))
-            model.add(layers.Dense(tiles_unique, activation='tanh'))
+            model.add(layers.Dense(BetaoriProtocol.tiles_unique, activation='tanh'))
 
             # NB: need to configure
             # Need to try: sgd, adam, adagrad
             model.compile(optimizer='sgd',
                           loss='mean_squared_error')
 
+            h5_file_path = os.path.join(self.data_path, 'data.h5')
+            total_data_size = HDF5Matrix(h5_file_path, 'input_data').size
+            number_of_examples = total_data_size // BetaoriProtocol.input_size
+            logger.info('Train data size: {}'.format(number_of_examples))
+
+            chunks = int(number_of_examples / self.chunk_size)
+            # it happens when chunk_size > number_of_examples
+            if chunks == 0:
+                chunks = 1
+
             for n_epoch in range(self.epochs):
+                logger.info('')
                 logger.info('Processing epoch #{}...'.format(n_epoch))
-                for train_file in train_files:
-                    logger.info('Processing {}...'.format(train_file))
-                    data_path = os.path.join(self.data_path, train_file)
-                    train_data = pickle.load(open(data_path, "rb"))
 
-                    train_samples = len(train_data.input_data)
-                    train_input = np.asarray(train_data.input_data).astype('float32')
-                    train_output = np.asarray(train_data.output_data).astype('float32')
+                for x in range(0, chunks):
+                    start = x * self.chunk_size
+                    if x + 1 == chunks:
+                        # we had to add all remaining items to the last chunk
+                        # for example with limit=81, chunks=4 results will be distributed:
+                        # 20 20 20 21
+                        end = number_of_examples
+                    else:
+                        end = (x + 1) * self.chunk_size
 
-                    logger.info('Train data size = {}'.format(train_samples))
+                    logger.info('Data slice. Start = {}, end = {}'.format(start, end))
+
+                    train_input = HDF5Matrix(h5_file_path, 'input_data', start=start, end=end)
+                    train_output = HDF5Matrix(h5_file_path, 'output_data', start=start, end=end)
 
                     model.fit(
                         train_input,
                         train_output,
+                        # we need it to work with md5 data
+                        shuffle='batch',
                         epochs=1,
                         batch_size=256,
                         validation_data=(test_input, test_output),
@@ -108,6 +115,7 @@ class Betaori(object):
         results = model.evaluate(test_input, test_output, verbose=1)
         logger.info('results: loss = {}'.format(results))
 
+        logger.info('')
         logger.info('Final predictions')
         self.calculate_predictions(model,
                                    test_input,
@@ -214,7 +222,7 @@ class Betaori(object):
         avg_genbutsu_error = sum_genbutsu_error * 1.0 / i
 
         logger.info('Prediction results:')
-        logger.info('avg_min_wait_pos = %f (%f)' % (avg_min_wait_pos, avg_min_wait_pos / tiles_unique))
-        logger.info('avg_max_wait_pos = %f (%f)' % (avg_max_wait_pos, avg_max_wait_pos / tiles_unique))
-        logger.info('avg_avg_wait_pos = %f (%f)' % (avg_avg_wait_pos, avg_avg_wait_pos / tiles_unique))
+        logger.info('avg_min_wait_pos = %f (%f)' % (avg_min_wait_pos, avg_min_wait_pos / BetaoriProtocol.tiles_unique))
+        logger.info('avg_max_wait_pos = %f (%f)' % (avg_max_wait_pos, avg_max_wait_pos / BetaoriProtocol.tiles_unique))
+        logger.info('avg_avg_wait_pos = %f (%f)' % (avg_avg_wait_pos, avg_avg_wait_pos / BetaoriProtocol.tiles_unique))
         logger.info('avg_genbutsu_error = {}'.format(avg_genbutsu_error))

@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
-import csv
 import itertools
-
-tiles_unique = 34
-tiles_num = tiles_unique * 4
-input_size = tiles_num * 5 + tiles_num * 5 * 2 + tiles_num + tiles_num // 4
 
 
 class BetaoriProtocol(object):
+    tiles_unique = 34
+    tiles_num = tiles_unique * 4
+    input_size = tiles_num * 5 + tiles_num * 5 * 2 + tiles_num + tiles_num // 4
+
     def __init__(self):
         self.input_data = []
         self.output_data = []
@@ -24,11 +23,11 @@ class BetaoriProtocol(object):
         # Fifth row - how long ago tile was discarded, 1 for first discad,
         #             and decreases by 0.025 for each following discard
         # NB: this should correspond to input_size variable!
-        discards = [0 for x in range(tiles_num)]
-        tsumogiri = [0 for x in range(tiles_num)]
-        after_meld = [0 for x in range(tiles_num)]
-        melds = [0 for x in range(tiles_num)]
-        discards_order = [0 for x in range(tiles_num)]
+        discards = [0 for x in range(BetaoriProtocol.tiles_num)]
+        tsumogiri = [0 for x in range(BetaoriProtocol.tiles_num)]
+        after_meld = [0 for x in range(BetaoriProtocol.tiles_num)]
+        melds = [0 for x in range(BetaoriProtocol.tiles_num)]
+        discards_order = [0 for x in range(BetaoriProtocol.tiles_num)]
 
         discard_order_value = 1
         discard_order_step = 0.025
@@ -93,9 +92,13 @@ class BetaoriProtocol(object):
         return melds
 
     def parse_new_data(self, raw_data):
-        for row in raw_data:
+        for index, row in raw_data:
+            # TODO fix parser to not produce empty waiting strings...
+            if not row['tenpai_player_waiting']:
+                continue
+
             # total number of out tiles (all discards, all melds, player hand, dora indicators)
-            out_tiles = [0 for x in range(tiles_num // 4)]
+            out_tiles = [0 for x in range(BetaoriProtocol.tiles_num // 4)]
 
             discards, tsumogiri, after_meld, melds, discards_order, out_tiles = BetaoriProtocol.process_discards(
                 row['tenpai_player_discards'],
@@ -115,13 +118,13 @@ class BetaoriProtocol(object):
                 out_tiles
             )
 
-            player_hand = [0 for x in range(tiles_num)]
+            player_hand = [0 for x in range(BetaoriProtocol.tiles_num)]
             for x in [int(x) for x in row['player_hand'].split(',')]:
                 player_hand[x] += 1
 
                 out_tiles[x // 4] += 0.25
 
-            for x in [int(x) for x in row['dora_indicators'].split(',')]:
+            for x in [int(x) for x in str(row['dora_indicators']).split(',')]:
                 out_tiles[x // 4] += 0.25
 
             input_cur = list(itertools.chain(
@@ -144,8 +147,8 @@ class BetaoriProtocol(object):
                 out_tiles,
             ))
 
-            if len(input_cur) != input_size:
-                print("Internal error: len(input_cur) should be %d, but is %d" % (input_size, len(input_cur)))
+            if len(input_cur) != BetaoriProtocol.input_size:
+                print("Internal error: len(input_cur) should be %d, but is %d" % (BetaoriProtocol.input_size, len(input_cur)))
                 exit(1)
 
             self.input_data.append(input_cur)
@@ -153,7 +156,7 @@ class BetaoriProtocol(object):
             # Output etalon - actual waits
             # For tiles that are not 100% safe and not actual waits,
             # we give value 0
-            waiting = [0 for x in range(tiles_num // 4)]
+            waiting = [0 for x in range(BetaoriProtocol.tiles_num // 4)]
 
             tenpai_discards = BetaoriProtocol.prepare_discards(row['tenpai_player_discards'])
             tenpai_melds = BetaoriProtocol.prepare_melds(row['tenpai_player_melds'])
