@@ -25,19 +25,32 @@ class LoggingCallback(Callback):
 
 class Betaori(object):
     model_name = 'betaori.h5'
-    epochs = 8
-    chunk_size = 50000
+    batch_size = 256
 
-    def __init__(self, root_dir, data_path, print_predictions):
+    def __init__(self, root_dir, data_path, print_predictions, epochs, chunk_size):
         self.model_path = os.path.join(root_dir, self.model_name)
         self.data_path = os.path.join(data_path, 'betaori')
         self.print_predictions = print_predictions
+
+        self.epochs = epochs
+        self.chunk_size = chunk_size
 
     def remove_model(self):
         if os.path.exists(self.model_path):
             os.remove(self.model_path)
 
     def run(self):
+        model_attributes = {
+            'optimizer': 'sgd',
+            'loss': 'mean_squared_error'
+        }
+
+        logger.info('Epochs: {}'.format(self.epochs))
+        logger.info('Chunk size: {}'.format(self.chunk_size))
+        logger.info('Batch size: {}'.format(self.batch_size))
+        logger.info('Model attributes: {}'.format(model_attributes))
+        logger.info('')
+
         test_file_path = os.path.join(self.data_path, 'test.p')
         test_data = pickle.load(open(test_file_path, 'rb'))
 
@@ -53,10 +66,7 @@ class Betaori(object):
             model.add(layers.Dense(1024, activation='relu'))
             model.add(layers.Dense(BetaoriProtocol.tiles_unique, activation='tanh'))
 
-            # NB: need to configure
-            # Need to try: sgd, adam, adagrad
-            model.compile(optimizer='sgd',
-                          loss='mean_squared_error')
+            model.compile(**model_attributes)
 
             h5_file_path = os.path.join(self.data_path, 'data.h5')
             total_data_size = HDF5Matrix(h5_file_path, 'input_data').size
@@ -93,7 +103,7 @@ class Betaori(object):
                         # we need it to work with md5 data
                         shuffle='batch',
                         epochs=1,
-                        batch_size=256,
+                        batch_size=self.batch_size,
                         validation_data=(test_input, test_output),
                         callbacks=[LoggingCallback()]
                     )
