@@ -12,6 +12,7 @@ from keras.utils import HDF5Matrix
 from mahjong.tile import TilesConverter
 import numpy as np
 
+from nn.utils.plot_utils import plot_history
 from nn.utils.protocols.betaori_protocol import BetaoriProtocol
 
 logger = logging.getLogger('logs')
@@ -26,28 +27,36 @@ class LoggingCallback(Callback):
 
 class Betaori(object):
     model_name = 'betaori.h5'
+
+    model_attributes = {
+        'optimizer': 'sgd',
+        'loss': 'mean_squared_error'
+    }
+
+    output = 'tanh'
+    units = 1024
     batch_size = 256
 
-    def __init__(self, root_dir, data_path, print_predictions, epochs):
+    def __init__(self, root_dir, data_path, print_predictions, epochs, need_visualize):
         self.model_path = os.path.join(root_dir, self.model_name)
         self.data_path = os.path.join(data_path, 'betaori')
         self.print_predictions = print_predictions
+        self.need_visualize = need_visualize
 
         self.epochs = epochs
+        
+        self.graphs_data = []
 
     def remove_model(self):
         if os.path.exists(self.model_path):
             os.remove(self.model_path)
 
     def run(self):
-        model_attributes = {
-            'optimizer': 'sgd',
-            'loss': 'mean_squared_error'
-        }
-
         logger.info('Epochs: {}'.format(self.epochs))
         logger.info('Batch size: {}'.format(self.batch_size))
-        logger.info('Model attributes: {}'.format(model_attributes))
+        logger.info('Model attributes: {}'.format(self.model_attributes))
+        logger.info('Output: {}'.format(self.output))
+        logger.info('Units: {}'.format(self.units))
         logger.info('')
 
         test_file_path = os.path.join(self.data_path, 'test.p')
@@ -72,11 +81,11 @@ class Betaori(object):
             logger.info('{} files will be used for training'.format(len(train_files)))
 
             model = models.Sequential()
-            model.add(layers.Dense(1024, activation='relu', input_shape=(BetaoriProtocol.input_size,)))
-            model.add(layers.Dense(1024, activation='relu'))
-            model.add(layers.Dense(BetaoriProtocol.tiles_unique, activation='tanh'))
+            model.add(layers.Dense(self.units, activation='relu', input_shape=(BetaoriProtocol.input_size,)))
+            model.add(layers.Dense(self.units, activation='relu'))
+            model.add(layers.Dense(BetaoriProtocol.tiles_unique, activation=output))
 
-            model.compile(**model_attributes)
+            model.compile(**self.model_attributes)
 
             for n_epoch in range(1, self.epochs + 1):
                 logger.info('')
@@ -105,9 +114,9 @@ class Betaori(object):
                 logger.info('Predictions after epoch #{}'.format(n_epoch))
                 self.calculate_predictions(model,
                                            test_input,
-                                           test_output,
                                            test_verification,
-                                           False)
+                                           False,
+                                           n_epoch)
 
                 # We save model after each epoch
                 logger.info('Saving model, please don\'t interrupt...')
@@ -116,6 +125,9 @@ class Betaori(object):
         else:
             model = load_model(self.model_path)
 
+        best_result = sorted(self.graphs_data, key=lambda x: x['avg_min_wait_pos'], reverse=True)[0]
+        logger.info('Best result: {}'.format(best_result))
+
         results = model.evaluate(test_input, test_output, verbose=1)
         logger.info('results: loss = {}'.format(results))
 
@@ -123,9 +135,12 @@ class Betaori(object):
         logger.info('Final predictions')
         self.calculate_predictions(model,
                                    test_input,
-                                   test_output,
                                    test_verification,
-                                   self.print_predictions)
+                                   self.print_predictions,
+                                   None)
+
+        if self.need_visualize:
+            plot_history(self.graphs_data)
 
     def tiles_34_to_sting_unsorted(self, tiles):
         string = ''
@@ -147,9 +162,9 @@ class Betaori(object):
     def calculate_predictions(self,
                               model,
                               test_input,
-                              test_output,
                               test_verification,
-                              need_print_predictions):
+                              need_print_predictions,
+                              epoch):
         predictions = model.predict(test_input, verbose=1)
         logger.info('predictions shape = {}'.format(predictions.shape))
 
@@ -236,3 +251,14 @@ class Betaori(object):
         logger.info('avg_max_wait_pos = {}'.format(avg_max_wait_pos))
         logger.info('avg_avg_wait_pos = {}'.format(avg_avg_wait_pos))
         logger.info('avg_genbutsu_error = {}'.format(avg_genbutsu_error))
+
+        if epoch:
+            self.graphs_data.append(
+                {
+                    'epoch': epoch,
+                    'avg_min_wait_pos': avg_min_wait_pos,
+                    'avg_max_wait_pos': avg_max_wait_pos,
+                    'avg_avg_wait_pos': avg_avg_wait_pos,
+                    'avg_genbutsu_error': avg_genbutsu_error
+                }
+            )

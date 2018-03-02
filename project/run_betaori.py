@@ -26,11 +26,17 @@ def main():
                       type='int',
                       default=16)
 
+    parser.add_option('-v',
+                      '--visualize',
+                      action='store_true',
+                      default=False)
+
     opts, _ = parser.parse_args()
 
     print_predictions = opts.print_predictions
     rebuild = opts.rebuild
     epochs = opts.epochs
+    visualize = opts.visualize
 
     root_dir = os.path.dirname(os.path.realpath(__file__))
     data_dir = os.path.join(root_dir, 'processed_data')
@@ -44,7 +50,7 @@ def main():
 
     set_up_logging('betaori')
 
-    betaori = Betaori(root_dir, data_dir, print_predictions, epochs)
+    betaori = Betaori(root_dir, data_dir, print_predictions, epochs, visualize)
 
     if rebuild:
         betaori.remove_model()
