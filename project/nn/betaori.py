@@ -28,13 +28,12 @@ class Betaori(object):
     model_name = 'betaori.h5'
     batch_size = 256
 
-    def __init__(self, root_dir, data_path, print_predictions, epochs, chunk_size):
+    def __init__(self, root_dir, data_path, print_predictions, epochs):
         self.model_path = os.path.join(root_dir, self.model_name)
         self.data_path = os.path.join(data_path, 'betaori')
         self.print_predictions = print_predictions
 
         self.epochs = epochs
-        self.chunk_size = chunk_size
 
     def remove_model(self):
         if os.path.exists(self.model_path):
@@ -47,7 +46,6 @@ class Betaori(object):
         }
 
         logger.info('Epochs: {}'.format(self.epochs))
-        logger.info('Chunk size: {}'.format(self.chunk_size))
         logger.info('Batch size: {}'.format(self.batch_size))
         logger.info('Model attributes: {}'.format(model_attributes))
         logger.info('')
@@ -62,6 +60,17 @@ class Betaori(object):
         logger.info('Test data size = {}'.format(test_samples))
 
         if not os.path.exists(self.model_path):
+            data_files_temp = os.listdir(self.data_path)
+            data_files = []
+            for f in data_files_temp:
+                if not f.endswith('.h5'):
+                    continue
+
+                data_files.append(f)
+
+            train_files = sorted(data_files)
+            logger.info('{} files will be used for training'.format(len(train_files)))
+
             model = models.Sequential()
             model.add(layers.Dense(1024, activation='relu', input_shape=(BetaoriProtocol.input_size,)))
             model.add(layers.Dense(1024, activation='relu'))
@@ -69,34 +78,18 @@ class Betaori(object):
 
             model.compile(**model_attributes)
 
-            h5_file_path = os.path.join(self.data_path, 'data.h5')
-            total_data_size = HDF5Matrix(h5_file_path, 'input_data').size
-            number_of_examples = total_data_size // BetaoriProtocol.input_size
-            logger.info('Train data size: {}'.format(number_of_examples))
-
-            chunks = int(math.ceil(number_of_examples / self.chunk_size))
-            # it happens when chunk_size > number_of_examples
-            if chunks == 0:
-                chunks = 1
-
-            for n_epoch in range(self.epochs):
+            for n_epoch in range(1, self.epochs + 1):
                 logger.info('')
                 logger.info('Processing epoch #{}...'.format(n_epoch))
 
-                for x in range(0, chunks):
-                    start = x * self.chunk_size
-                    if x + 1 == chunks:
-                        # we had to add all remaining items to the last chunk
-                        # for example with limit=81, chunks=4 results will be distributed:
-                        # 20 20 20 21
-                        end = number_of_examples
-                    else:
-                        end = (x + 1) * self.chunk_size
+                for train_file in train_files:
+                    logger.info('Processing {}...'.format(train_file))
+                    h5_file_path = os.path.join(self.data_path, train_file)
 
-                    logger.info('Data slice. Start = {}, end = {}'.format(start, end))
+                    train_input = HDF5Matrix(h5_file_path, 'input_data')
+                    train_output = HDF5Matrix(h5_file_path, 'output_data')
 
-                    train_input = HDF5Matrix(h5_file_path, 'input_data', start=start, end=end)
-                    train_output = HDF5Matrix(h5_file_path, 'output_data', start=start, end=end)
+                    logger.info('Train data size = {}'.format(train_input.size / BetaoriProtocol.input_size))
 
                     model.fit(
                         train_input,

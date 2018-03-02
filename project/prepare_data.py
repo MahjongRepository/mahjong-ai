@@ -15,9 +15,6 @@ import numpy as np
 from nn.utils.protocols.betaori_protocol import BetaoriProtocol
 from nn.utils.protocols.own_hand_protocol import OwnHandProtocol
 
-test_data_percentage = 5
-chunk_size = 50000
-
 
 def main():
     parser = OptionParser()
@@ -31,9 +28,22 @@ def main():
                       help='hand or betaori',
                       default='betaori')
 
+    parser.add_option('-c', '--chunk',
+                      type='int',
+                      help='chunk size',
+                      default=100000)
+
+    parser.add_option('-t', '--test',
+                      type='int',
+                      help='test data percentage',
+                      default=5)
+
     opts, _ = parser.parse_args()
 
     data_path = opts.train_path
+    chunk_size = opts.chunk
+    test_data_percentage = opts.test
+
     if not data_path:
         parser.error('Path to .csv with train data is not given.')
 
@@ -106,12 +116,9 @@ def main():
     # otherwise we will mix train and test data
     data = pd.read_csv(data_path, skiprows=test_rows, chunksize=chunk_size)
 
-    f = h5py.File(os.path.join(data_dir, 'data.h5'), 'w')
-
-    input_data = None
-    output_data = None
     for i, chunk in enumerate(data):
-        print('Processing chunk {}...'.format(i))
+        file_name = 'chunk_{:03}.h5'.format(i)
+        print('Processing {}...'.format(file_name))
 
         if protocol_string == 'hand':
             protocol = OwnHandProtocol()
@@ -121,53 +128,23 @@ def main():
         chunk = chunk.replace([None, np.nan, 'None', 'NaN', 'nan'], '')
         protocol.parse_new_data(chunk.iterrows())
 
-        if i == 0:
-            input_data = f.create_dataset(
+        with h5py.File(os.path.join(data_dir, file_name), 'w') as f:
+            f.create_dataset(
                 'input_data',
                 data=protocol.input_data,
                 maxshape=(None, protocol.input_size),
                 dtype='float32'
             )
-            output_data = f.create_dataset(
+            f.create_dataset(
                 'output_data',
                 data=protocol.output_data,
                 maxshape=(None, protocol.tiles_unique),
                 dtype='float32'
             )
-        else:
-            new_input = list(input_data[:]) + protocol.input_data
-            input_data.resize(len(new_input), axis=0)
-            input_data[:] = new_input
 
-            new_output = list(output_data[:]) + protocol.output_data
-            output_data.resize(len(new_output), axis=0)
-            output_data[:] = new_output
-
-        data_size = input_data.shape[0]
-        print('Data size =', data_size)
+        print('Data size =', len(protocol.input_data))
 
         gc.collect()
-
-    print('')
-    print('Saving data.h5 file...')
-    f.close()
-
-    # validation
-    # f = h5py.File(h5_file_path, 'r')
-    # input_data = f['input_data']
-    #
-    # added_rows = []
-    # for row in input_data:
-    #     row_hash = str([x for x in row])
-    #     if row_hash not in added_rows:
-    #         added_rows.append(row_hash)
-    #
-    # print('')
-    # print('Validation')
-    # print('Data size =', data_size)
-    # print('Unique rows =', len(added_rows))
-    #
-    # f.close()
 
 
 def line_count(file):
