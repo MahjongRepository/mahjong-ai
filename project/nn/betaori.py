@@ -83,7 +83,7 @@ class Betaori(object):
             model = models.Sequential()
             model.add(layers.Dense(self.units, activation='relu', input_shape=(BetaoriProtocol.input_size,)))
             model.add(layers.Dense(self.units, activation='relu'))
-            model.add(layers.Dense(BetaoriProtocol.tiles_unique, activation=output))
+            model.add(layers.Dense(BetaoriProtocol.tiles_unique, activation=self.output))
 
             model.compile(**self.model_attributes)
 
