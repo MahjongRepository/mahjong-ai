@@ -5,7 +5,8 @@ import itertools
 class BetaoriProtocol(object):
     tiles_unique = 34
     tiles_num = tiles_unique * 4
-    input_size = tiles_num * 5 + tiles_num * 3 * 2 + tiles_num + tiles_num // 4
+    # input_size = tiles_num * 5 + tiles_num * 3 * 2 + tiles_num + tiles_num // 4
+    input_size = tiles_num * 5 + tiles_num * 2 * 2 + tiles_unique
 
     def __init__(self):
         self.input_data = []
@@ -118,10 +119,9 @@ class BetaoriProtocol(object):
                 out_tiles
             )
 
-            player_hand = [0 for x in range(BetaoriProtocol.tiles_num)]
+            # player_hand = [0 for x in range(BetaoriProtocol.tiles_num)]
             for x in [int(x) for x in row['player_hand'].split(',')]:
-                player_hand[x] += 1
-
+            #     # player_hand[x] += 1
                 out_tiles[x // 4] += 0.25
 
             for x in [int(x) for x in str(row['dora_indicators']).split(',')]:
@@ -137,13 +137,13 @@ class BetaoriProtocol(object):
                 # sp_tsumogiri,
                 # sp_after_meld,
                 sp_melds,
-                sp_discards_order,
+                # sp_discards_order,
                 tp_discards,
                 # tp_tsumogiri,
                 # tp_after_meld,
                 tp_melds,
-                tp_discards_order,
-                player_hand,
+                # tp_discards_order,
+                # player_hand,
                 out_tiles,
             ))
 
