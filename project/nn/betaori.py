@@ -125,8 +125,9 @@ class Betaori(object):
         else:
             model = load_model(self.model_path)
 
-        best_result = sorted(self.graphs_data, key=lambda x: x['avg_min_wait_pos'], reverse=True)[0]
-        logger.info('Best result: {}'.format(best_result))
+        if self.graphs_data:
+            best_result = sorted(self.graphs_data, key=lambda x: x['avg_min_wait_pos'], reverse=True)[0]
+            logger.info('Best result: {}'.format(best_result))
 
         results = model.evaluate(test_input, test_output, verbose=1)
         logger.info('results: loss = {}'.format(results))
