@@ -287,6 +287,6 @@ class Betaori(object):
                     'avg_max_wait_pos': avg_max_wait_pos,
                     'avg_avg_wait_pos': avg_avg_wait_pos,
                     'avg_genbutsu_error': avg_genbutsu_error,
-                    'avg_min_wait_pos_in_hand (jap metrics)':avg_min_wait_pos_in_hand
+                    'avg_min_wait_pos_in_hand': avg_min_wait_pos_in_hand
                 }
             )
