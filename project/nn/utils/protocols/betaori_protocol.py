@@ -100,6 +100,7 @@ class BetaoriProtocol(object):
 
             # total number of out tiles (all discards, all melds, player hand, dora indicators)
             out_tiles = [0 for x in range(BetaoriProtocol.tiles_num // 4)]
+            defending_hand = []
 
             discards, tsumogiri, after_meld, melds, discards_order, out_tiles = BetaoriProtocol.process_discards(
                 row['tenpai_player_discards'],
@@ -122,6 +123,7 @@ class BetaoriProtocol(object):
             # player_hand = [0 for x in range(BetaoriProtocol.tiles_num)]
             for x in [int(x) for x in row['player_hand'].split(',')]:
             #     # player_hand[x] += 1
+                defending_hand.append(x // 4)
                 out_tiles[x // 4] += 0.25
 
             for x in [int(x) for x in str(row['dora_indicators']).split(',')]:
@@ -183,7 +185,8 @@ class BetaoriProtocol(object):
                 tenpai_player_hand,
                 tenpai_discards,
                 tenpai_melds,
-                waiting_temp
+                waiting_temp,
+                defending_hand
             ]
 
             self.verification_data.append(verification_cur)

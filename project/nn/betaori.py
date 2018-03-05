@@ -44,7 +44,7 @@ class Betaori(object):
         self.need_visualize = need_visualize
 
         self.epochs = epochs
-        
+
         self.graphs_data = []
 
     def remove_model(self):
@@ -173,11 +173,13 @@ class Betaori(object):
         sum_max_wait_pos = 0
         sum_avg_wait_pos = 0
         sum_genbutsu_error = 0
+        sum_min_wait_pos_in_hand = 0
         i = 0
+        i_jap = 0
         for prediction in predictions:
             tiles_by_danger = np.argsort(prediction)
 
-            hand = test_verification[i][0]
+            tempai_hand = test_verification[i][0]
 
             discards = [x[0] for x in test_verification[i][1]]
             melds = [x[0] for x in test_verification[i][2]]
@@ -190,8 +192,17 @@ class Betaori(object):
 
             num_waits = len(waits)
 
+            defending_hand_unique = set([x for x in test_verification[i][4]])
+            defending_hand_danger = []
+            for t in defending_hand_unique:
+                pos = np.where(tiles_by_danger == t)[0].item(0)
+                defending_hand_danger.append(pos)
+            defending_hand_danger = np.sort(defending_hand_danger)
+
             sum_wait_pos = 0
             min_wait_pos = len(tiles_by_danger)
+            waits_in_hand = 0
+            min_wait_pos_in_hand = len(tiles_by_danger)
             max_wait_pos = 0
             for w in waits:
                 pos = np.where(tiles_by_danger == (w // 4))[0].item(0)
@@ -200,6 +211,17 @@ class Betaori(object):
                 if pos > max_wait_pos:
                     max_wait_pos = pos
                 sum_wait_pos += pos
+
+                if (w // 4) in defending_hand_unique:
+                    waits_in_hand += 1
+                    if pos < min_wait_pos_in_hand:
+                        min_wait_pos_in_hand = pos
+
+            min_wait_pos_in_hand_coef = 0
+            if waits_in_hand > 0 and len(defending_hand_unique) != waits_in_hand:
+                pos_in_hand = np.where(defending_hand_danger == min_wait_pos_in_hand)[0].item(0)
+                min_wait_pos_in_hand_coef = pos_in_hand / (len(defending_hand_unique) - waits_in_hand)
+                i_jap += 1
 
             avg_wait_pos = sum_wait_pos / len(waits)
 
@@ -216,7 +238,8 @@ class Betaori(object):
 
             if need_print_predictions:
                 logger.info('============================================')
-                logger.info('hand: {}'.format(TilesConverter.to_one_line_string(hand)))
+                logger.info('defending_hand: {}'.format(self.tiles_34_to_sting_unsorted(defending_hand)))
+                logger.info('tempai_hand: {}'.format(TilesConverter.to_one_line_string(tempai_hand)))
                 logger.info('discards: {}'.format(self.tiles_136_to_sting_unsorted(discards)))
                 if melds:
                     logger.info('melds: {}'.format(' '.join([TilesConverter.to_one_line_string(x) for x in melds])))
@@ -239,6 +262,7 @@ class Betaori(object):
             sum_max_wait_pos += ((max_wait_pos - num_waits) / (BetaoriProtocol.tiles_unique - num_waits))
             sum_avg_wait_pos += ((avg_wait_pos - avg_pos_offset) / (BetaoriProtocol.tiles_unique - num_waits))
             sum_genbutsu_error += genbutsu_error
+            sum_min_wait_pos_in_hand += min_wait_pos_in_hand_coef
 
             i += 1
 
@@ -246,12 +270,14 @@ class Betaori(object):
         avg_max_wait_pos = sum_max_wait_pos / i
         avg_avg_wait_pos = sum_avg_wait_pos / i
         avg_genbutsu_error = sum_genbutsu_error / i
+        avg_min_wait_pos_in_hand = sum_min_wait_pos_in_hand / i_jap
 
         logger.info('Prediction results:')
         logger.info('avg_min_wait_pos = {}'.format(avg_min_wait_pos))
         logger.info('avg_max_wait_pos = {}'.format(avg_max_wait_pos))
         logger.info('avg_avg_wait_pos = {}'.format(avg_avg_wait_pos))
         logger.info('avg_genbutsu_error = {}'.format(avg_genbutsu_error))
+        logger.info('avg_min_wait_pos_in_hand (jap metrics) = {}'.format(avg_min_wait_pos_in_hand))
 
         if epoch:
             self.graphs_data.append(
@@ -260,6 +286,7 @@ class Betaori(object):
                     'avg_min_wait_pos': avg_min_wait_pos,
                     'avg_max_wait_pos': avg_max_wait_pos,
                     'avg_avg_wait_pos': avg_avg_wait_pos,
-                    'avg_genbutsu_error': avg_genbutsu_error
+                    'avg_genbutsu_error': avg_genbutsu_error,
+                    'avg_min_wait_pos_in_hand (jap metrics)':avg_min_wait_pos_in_hand
                 }
             )
