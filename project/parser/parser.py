@@ -11,6 +11,7 @@ from mahjong.meld import Meld
 from mahjong.shanten import Shanten
 from mahjong.tile import TilesConverter
 
+from parser.csv_exporter import CSVExporter
 from parser.discard import Discard
 from parser.table import Table
 
@@ -74,16 +75,15 @@ class LogParser(object):
         self.agari = Agari()
         self.finished_hand = HandCalculator()
 
-        tenpai_players = []
+        csv_records = {}
 
         step = 0
         for hand in game:
             table = Table()
 
-            added_players = {}
             called_meld = []
-
             log_id = None
+            tenpai_player = None
 
             try:
                 for tag in hand:
@@ -106,6 +106,8 @@ class LogParser(object):
 
                         step += 1
 
+                        tenpai_player = None
+
                     if self._is_discard(tag):
                         tile = self._parse_tile(tag)
                         player_seat = self._get_player_seat(tag)
@@ -121,7 +123,7 @@ class LogParser(object):
                         player.discard_tile(discard)
 
                         # for now let's work only with hand state in moment of first tenpai
-                        if player_seat not in added_players:
+                        if not tenpai_player:
                             tiles_34 = TilesConverter.to_34_array(player.tiles)
                             melds_34 = player.melds_34
                             if self.shanten.calculate_shanten(tiles_34, melds_34) == 0:
@@ -135,13 +137,20 @@ class LogParser(object):
                                         has_furiten = True
 
                                 if not has_furiten:
-                                    added_players[player_seat] = copy.deepcopy(player)
+                                    tenpai_player = player
+                                    tenpai_player.waiting = self._calculate_costs(tenpai_player)
 
                     if self._is_draw(tag):
                         tile = self._parse_tile(tag)
                         player_seat = self._get_player_seat(tag)
+                        player = table.get_player(player_seat)
 
-                        table.get_player(player_seat).draw_tile(tile)
+                        player.draw_tile(tile)
+
+                        if tenpai_player:
+                            key = '{}_{}'.format(step, player_seat)
+                            if key not in csv_records and tenpai_player.seat != player_seat:
+                                csv_records[key] = CSVExporter.export_player(tenpai_player, player)
 
                     if self._is_meld_set(tag):
                         meld = self._parse_meld(tag)
@@ -163,23 +172,23 @@ class LogParser(object):
 
                     if self._is_riichi(tag):
                         riichi_step = int(self._get_attribute_content(tag, 'step'))
-                        who = int(self._get_attribute_content(tag, 'who'))
-                        if riichi_step == 2 and who in added_players:
-                            added_players[who].discards[-1].after_riichi = True
+                        if riichi_step == 2:
+                            who = int(self._get_attribute_content(tag, 'who'))
+                            player = table.get_player(who)
+                            player.in_riichi = True
+                            player.discards[-1].after_riichi = True
 
                     if self._is_new_dora(tag):
                         dora = int(self._get_attribute_content(tag, 'hai'))
                         table.add_dora(dora)
+
             except Exception as e:
                 logger.error(e, exc_info=True)
                 print('Failed to process log: {}'.format(log_id))
 
-            tenpai_players.extend([x[1] for x in added_players.items()])
+            # tenpai_players.extend([x[1] for x in added_players.items()])
 
-        for player in tenpai_players:
-            player.waiting = self._calculate_costs(player)
-
-        return tenpai_players
+        return [x[1] for x in csv_records.items()]
 
     def _get_attribute_content(self, tag, attribute_name):
         result = re.findall(r'{}="([^"]*)"'.format(attribute_name), tag)

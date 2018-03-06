@@ -16,6 +16,7 @@ class Player(object):
         self.cost = 0
         self.seat = seat
         self.dealer_seat = dealer_seat
+        self.in_riichi = False
 
     def init_hand(self, tiles_string):
         tiles = [int(x) for x in tiles_string.split(',')]
@@ -23,6 +24,10 @@ class Player(object):
 
     def discard_tile(self, discard_obj):
         self.tiles.remove(discard_obj.tile)
+
+        if self.in_riichi:
+            discard_obj.after_riichi = True
+
         self.discards.append(discard_obj)
 
     def draw_tile(self, tile):

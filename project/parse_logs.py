@@ -66,34 +66,29 @@ def main():
                 writer = csv.writer(f)
                 writer.writerow(CSVExporter.header())
 
-    processed = 0
-    processed_tenpais = 0
+    logs_count = 0
+    samples_count = 0
     count_of_logs = len(logs)
     print(get_date_string())
     print('Starting processing...')
 
     for log_data in logs:
-        if processed > 0 and processed % 1000 == 0:
+        if logs_count > 0 and logs_count % 1000 == 0:
             print('')
             print(get_date_string())
-            print('Processed logs: {}/{}'.format(processed, count_of_logs))
-            print('With {} hands'.format(processed_tenpais))
+            print('Processed logs: {}/{}'.format(logs_count, count_of_logs))
+            print('Samples: {}'.format(samples_count))
 
         game = parser.get_game_hands(log_data['log_content'], log_data['log_id'])
 
-        tenpai_players = parser.extract_tenpai_players(game)
-        processed_tenpais += len(tenpai_players)
+        csv_records = parser.extract_tenpai_players(game)
+        save_csv_data(csv_records, csv_file)
 
-        if export_format == 'json':
-            save_json_data(tenpai_players)
-
-        if export_format == 'csv':
-            save_csv_data(tenpai_players, csv_file)
-
-        processed += 1
+        logs_count += 1
+        samples_count += len(csv_records)
 
     print('End')
-    print('Total hands {}'.format(processed_tenpais))
+    print('Total samples:  {}'.format(samples_count))
 
 
 def save_json_data(tenpai_players):
@@ -118,13 +113,11 @@ def save_json_data(tenpai_players):
             f.write(json.dumps(JsonExporter.export_player(player)))
 
 
-def save_csv_data(tenpai_players, csv_file):
+def save_csv_data(csv_records, csv_file):
     with open(csv_file, 'a') as f:
         writer = csv.writer(f)
-        for tenpai_player in tenpai_players:
-            for player in tenpai_player.table.players:
-                if player.seat != tenpai_player.seat:
-                    writer.writerow(CSVExporter.export_player(tenpai_player, player))
+        for record in csv_records:
+            writer.writerow(record)
 
 
 def load_logs(db_path, limit):
