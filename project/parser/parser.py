@@ -127,7 +127,8 @@ class LogParser(object):
                             tiles_34 = TilesConverter.to_34_array(player.tiles)
                             melds_34 = player.melds_34
                             if self.shanten.calculate_shanten(tiles_34, melds_34) == 0:
-                                player.set_waiting(self._get_waiting(table.get_player(player_seat)))
+                                waiting = self._get_waiting(table.get_player(player_seat))
+                                player.set_waiting(waiting)
 
                                 has_furiten = False
                                 for waiting_34 in player.waiting:
@@ -155,20 +156,28 @@ class LogParser(object):
                     if self._is_meld_set(tag):
                         meld = self._parse_meld(tag)
                         player = table.get_player(meld.who)
-                        player.add_meld(meld)
 
-                        # for open kan and chankan
-                        # we not need to add tile in hand
-                        if meld.type != Meld.CHANKAN and meld.type != Meld.KAN:
-                            player.draw_tile(meld.called_tile)
+                        # let's skip chankan for now
+                        # later we can replace pon with this chankan
+                        if meld.type == Meld.CHANKAN:
+                            player.tiles.remove(meld.called_tile)
+                        else:
+                            player.add_meld(meld)
 
-                        # for closed kan we had to remove tile from hand
-                        if meld.type == Meld.KAN and not meld.opened:
-                            # in riichi we will not have tile in hand
-                            if meld.called_tile in player.tiles:
-                                player.tiles.remove(meld.called_tile)
+                            # for open kan
+                            # we dont need to add tile in hand
+                            if meld.type == Meld.KAN and meld.opened:
+                                pass
+                            else:
+                                player.draw_tile(meld.called_tile)
 
-                        called_meld.append(meld.who)
+                            # for closed kan we had to remove tile from hand
+                            if meld.type == Meld.KAN and not meld.opened:
+                                # in riichi we will not have tile in hand
+                                if meld.called_tile in player.tiles:
+                                    player.tiles.remove(meld.called_tile)
+
+                            called_meld.append(meld.who)
 
                     if self._is_riichi(tag):
                         riichi_step = int(self._get_attribute_content(tag, 'step'))
