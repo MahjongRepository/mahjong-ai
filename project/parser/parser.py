@@ -138,8 +138,12 @@ class LogParser(object):
                                         has_furiten = True
 
                                 if not has_furiten:
-                                    tenpai_player = player
-                                    tenpai_player.waiting = self._calculate_costs(tenpai_player)
+                                    waiting = self._calculate_costs(player)
+                                    atodzuke_waiting = [x for x in waiting if x['cost'] is None]
+                                    # for now we don't need to add atodzuke waiting
+                                    if len(atodzuke_waiting) != len(waiting):
+                                        tenpai_player = player
+                                        tenpai_player.waiting = waiting
 
                     if self._is_draw(tag):
                         tile = self._parse_tile(tag)
