@@ -188,7 +188,10 @@ class Betaori(object):
             waits_temp = test_verification[i][3]
             for x in waits_temp:
                 temp = x.split(';')
-                waits.append(int(temp[0]))
+                wait = int(temp[0])
+                cost = int(temp[1])
+                if cost > 0:
+                    waits.append(wait)
 
             num_waits = len(waits)
 

@@ -94,10 +94,6 @@ class BetaoriProtocol(object):
 
     def parse_new_data(self, raw_data):
         for index, row in raw_data:
-            # TODO fix parser to not produce empty waiting strings...
-            if not row['tenpai_player_waiting']:
-                continue
-
             # total number of out tiles (all discards, all melds, player hand, dora indicators)
             out_tiles = [0 for x in range(BetaoriProtocol.tiles_num // 4)]
             defending_hand = []
@@ -172,10 +168,10 @@ class BetaoriProtocol(object):
             for x in waiting_temp:
                 temp = x.split(';')
                 tile = int(temp[0])
-                # if cost == 0 it avgs that player can't win on this waiting
-                # TODO: currently ignored
-                # cost = int(temp[1])
-                waiting[tile // 4] = 1
+                # if cost == 0 it mean that player can't win on this waiting
+                cost = int(temp[1])
+                if cost > 0:
+                    waiting[tile // 4] = 1
 
             self.output_data.append(waiting)
 
