@@ -23,7 +23,7 @@ def main():
                       type='string',
                       help='Path to .csv with train data.')
 
-    parser.add_option('-ft', '--test-path',
+    parser.add_option('-t', '--test-path',
                       type='string',
                       help='Path to .csv with test data.')
 
@@ -37,7 +37,7 @@ def main():
                       help='chunk size',
                       default=100000)
 
-    parser.add_option('-t', '--test',
+    parser.add_option('-a', '--percentage',
                       type='int',
                       help='test data percentage',
                       default=5)
@@ -47,7 +47,7 @@ def main():
     data_path = opts.train_path
     test_path = opts.test_path
     chunk_size = opts.chunk
-    test_data_percentage = opts.test
+    test_data_percentage = opts.percentage
 
     if not data_path:
         parser.error('Path to .csv with train data is not given.')
@@ -77,8 +77,8 @@ def main():
 
     test_total_count = line_count(test_path)
     test_count = int((total_count / 100.0) * test_data_percentage)
-    test_rows = np.random.choice(range(0, test_total_count), test_count, replace=False)
-    skip_test_rows = list(set(range(0, test_count)) - set(test_rows))
+    test_rows = np.random.choice(range(1, test_total_count), test_count, replace=False)
+    skip_test_rows = list(set(range(0, test_total_count)) - set(test_rows))
 
     print('Train data size: {}'.format(total_count))
     print('Test data size: {}'.format(len(test_rows)), end='\n\n')
@@ -97,7 +97,7 @@ def main():
     else:
         protocol = BetaoriProtocol()
 
-    test_data = pd.read_csv(data_path, skiprows=skip_test_rows, names=header)
+    test_data = pd.read_csv(test_path, skiprows=skip_test_rows, names=header)
     test_data = test_data.replace([None, np.nan, 'None', 'NaN', 'nan'], '')
 
     protocol.parse_new_data(test_data.iterrows())

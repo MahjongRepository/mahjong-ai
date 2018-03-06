@@ -195,7 +195,8 @@ class Betaori(object):
 
             num_waits = len(waits)
 
-            defending_hand_unique = set([x for x in test_verification[i][4]])
+            defending_hand = [x for x in test_verification[i][4]]
+            defending_hand_unique = set(defending_hand)
             defending_hand_danger = []
             for t in defending_hand_unique:
                 pos = np.where(tiles_by_danger == t)[0].item(0)
@@ -241,8 +242,8 @@ class Betaori(object):
 
             if need_print_predictions:
                 logger.info('============================================')
-                logger.info('defending_hand: {}'.format(self.tiles_34_to_sting_unsorted(defending_hand)))
-                logger.info('tempai_hand: {}'.format(TilesConverter.to_one_line_string(tempai_hand)))
+                logger.info('defending_hand: {}'.format(TilesConverter.to_one_line_string([x * 4 for x in defending_hand])))
+                logger.info('tenpai_hand: {}'.format(TilesConverter.to_one_line_string(tempai_hand)))
                 logger.info('discards: {}'.format(self.tiles_136_to_sting_unsorted(discards)))
                 if melds:
                     logger.info('melds: {}'.format(' '.join([TilesConverter.to_one_line_string(x) for x in melds])))
