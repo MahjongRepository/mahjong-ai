@@ -119,7 +119,9 @@ class LogParser(object):
 
                         is_tsumogiri = tile == player.tiles[-1]
 
-                        discard = Discard(tile, is_tsumogiri, after_meld, False, False)
+                        after_riichi = tenpai_player and tenpai_player.in_riichi
+
+                        discard = Discard(tile, is_tsumogiri, after_meld, after_riichi, False)
                         player.discard_tile(discard)
 
                         # for now let's work only with hand state in moment of first tenpai

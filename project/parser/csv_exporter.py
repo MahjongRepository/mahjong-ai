@@ -56,7 +56,7 @@ class CSVExporter(object):
             encode_discards(tenpai_player.discards),
             encode_melds(tenpai_player.melds),
             tenpai_player.player_wind,
-            tenpai_player.discards[-1].after_riichi and 1 or 0,
+            tenpai_player.in_riichi and 1 or 0,
             ','.join([str(x) for x in player.closed_hand]),
             encode_discards(player.discards),
             encode_melds(player.melds),
