@@ -23,6 +23,10 @@ def main():
                       type='string',
                       help='Path to .csv with train data.')
 
+    parser.add_option('-ft', '--test-path',
+                      type='string',
+                      help='Path to .csv with test data.')
+
     parser.add_option('-p', '--protocol',
                       type='string',
                       help='hand or betaori',
@@ -41,11 +45,15 @@ def main():
     opts, _ = parser.parse_args()
 
     data_path = opts.train_path
+    test_path = opts.test_path
     chunk_size = opts.chunk
     test_data_percentage = opts.test
 
     if not data_path:
         parser.error('Path to .csv with train data is not given.')
+
+    if not test_path:
+        parser.error('Path to .csv with test data is not given.')
 
     protocol_string = opts.protocol
     if protocol_string not in ['hand', 'betaori']:
@@ -66,24 +74,13 @@ def main():
     os.mkdir(data_dir)
 
     total_count = line_count(data_path)
+
+    test_total_count = line_count(test_path)
     test_count = int((total_count / 100.0) * test_data_percentage)
+    test_rows = np.random.choice(range(0, test_total_count), test_count, replace=False)
+    skip_test_rows = list(set(range(0, test_count)) - set(test_rows))
 
-    # because of our data we need to select three values in a row
-    test_count = round(test_count / 3)
-    indices_with_step_three = list(range(1, total_count, 3))
-    random_indices = np.random.choice(indices_with_step_three, test_count)
-    test_rows = []
-    for x in random_indices:
-        test_rows.append(x)
-        test_rows.append(x + 1)
-        test_rows.append(x + 2)
-    test_rows = set(list(test_rows))
-
-    data_rows = list(set([x for x in range(0, total_count)]) - set(test_rows))
-    train_data_size = len(data_rows)
-
-    print('Original data size: {}'.format(total_count))
-    print('Train data size: {}'.format(train_data_size))
+    print('Train data size: {}'.format(total_count))
     print('Test data size: {}'.format(len(test_rows)), end='\n\n')
 
     # pandas didn't add correct headers to csv by default
@@ -100,7 +97,7 @@ def main():
     else:
         protocol = BetaoriProtocol()
 
-    test_data = pd.read_csv(data_path, skiprows=data_rows, names=header)
+    test_data = pd.read_csv(data_path, skiprows=skip_test_rows, names=header)
     test_data = test_data.replace([None, np.nan, 'None', 'NaN', 'nan'], '')
 
     protocol.parse_new_data(test_data.iterrows())
@@ -112,11 +109,7 @@ def main():
     print('')
     print('Processing train data...')
 
-    # it is important to skip test rows here
-    # otherwise we will mix train and test data
-    data = pd.read_csv(data_path, skiprows=test_rows, chunksize=chunk_size)
-
-    for i, chunk in enumerate(data):
+    for i, chunk in enumerate(pd.read_csv(data_path, chunksize=chunk_size)):
         file_name = 'chunk_{:03}.h5'.format(i)
         print('Processing {}...'.format(file_name))
 
