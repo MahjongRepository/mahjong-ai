@@ -163,30 +163,31 @@ class LogParser(object):
                         meld = self._parse_meld(tag)
                         player = table.get_player(meld.who)
 
+                        # when we called chankan we need to remove pon set from hand
                         if meld.type == Meld.CHANKAN:
                             player.tiles.remove(meld.called_tile)
-                        else:
-                            player.add_meld(meld)
+                            pon_set = [x for x in player.melds if x.tiles[0] == meld.tiles[0]][0]
+                            player.melds.remove(pon_set)
 
-                            # for open kan
-                            # we dont need to add tile in hand
-                            if meld.type == Meld.KAN and meld.opened:
-                                pass
-                            else:
-                                player.draw_tile(meld.called_tile)
+                        player.add_meld(meld)
 
-                            if meld.opened:
-                                for meld_player in table.players:
-                                    if meld_player.discards and meld_player.discards[-1].tile == meld.called_tile:
-                                        meld_player.discards[-1].was_given_for_meld = True
+                        # if it was not kan/chankan let's draw a tile
+                        if meld.type != Meld.CHANKAN and meld.type != Meld.KAN:
+                            player.draw_tile(meld.called_tile)
 
-                            # for closed kan we had to remove tile from hand
-                            if meld.type == Meld.KAN and not meld.opened:
-                                # in riichi we will not have tile in hand
-                                if meld.called_tile in player.tiles:
-                                    player.tiles.remove(meld.called_tile)
+                        # indication that tile was taken from discard
+                        if meld.opened:
+                            for meld_player in table.players:
+                                if meld_player.discards and meld_player.discards[-1].tile == meld.called_tile:
+                                    meld_player.discards[-1].was_given_for_meld = True
 
-                            who_called_meld.append(meld.who)
+                        # for closed kan we had to remove tile from hand
+                        if meld.type == Meld.KAN and not meld.opened:
+                            # in riichi we will not have tile in hand
+                            if meld.called_tile in player.tiles:
+                                player.tiles.remove(meld.called_tile)
+
+                        who_called_meld.append(meld.who)
 
                     if self._is_riichi(tag):
                         riichi_step = int(self._get_attribute_content(tag, 'step'))
