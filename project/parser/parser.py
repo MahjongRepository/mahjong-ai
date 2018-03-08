@@ -190,15 +190,18 @@ class LogParser(object):
 
                     if self._is_riichi(tag):
                         riichi_step = int(self._get_attribute_content(tag, 'step'))
-                        if riichi_step == 2:
-                            who = int(self._get_attribute_content(tag, 'who'))
-                            player = table.get_player(who)
+                        who = int(self._get_attribute_content(tag, 'who'))
+                        player = table.get_player(who)
+
+                        if riichi_step == 1:
                             player.in_riichi = True
+
+                        if riichi_step == 2:
                             player.discards[-1].after_riichi = True
 
-                    if self._is_new_dora(tag):
-                        dora = int(self._get_attribute_content(tag, 'hai'))
-                        table.add_dora(dora)
+                        if self._is_new_dora(tag):
+                            dora = int(self._get_attribute_content(tag, 'hai'))
+                            table.add_dora(dora)
 
             except Exception as e:
                 logger.error(e, exc_info=True)
