@@ -38,6 +38,8 @@ class BetaoriProtocol(object):
             tile = x[0]
             is_tsumogiri = x[1]
             is_after_meld = x[2]
+            after_riichi = x[3]
+            taken_for_meld = x[4]
 
             discards[tile] = 1
             tsumogiri[tile] = is_tsumogiri
@@ -74,7 +76,11 @@ class BetaoriProtocol(object):
                 # is_tsumogiri
                 int(temp[1]),
                 # is_after_meld
-                int(temp[2])
+                int(temp[2]),
+                # after riichi
+                int(temp[3]),
+                # was taken for meld
+                int(temp[4]),
             ])
         return result
 
