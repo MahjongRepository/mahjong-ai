@@ -15,3 +15,4 @@ class Discard(object):
         self.after_meld = after_meld
         self.after_riichi = after_riichi
         self.tenpai_after_discard = tenpai_after_discard
+        self.was_given_for_meld = False

@@ -81,7 +81,7 @@ class LogParser(object):
         for hand in game:
             table = Table()
 
-            called_meld = []
+            who_called_meld = []
             log_id = None
             tenpai_player = None
 
@@ -113,9 +113,9 @@ class LogParser(object):
                         player_seat = self._get_player_seat(tag)
                         player = table.get_player(player_seat)
 
-                        after_meld = player_seat in called_meld
+                        after_meld = player_seat in who_called_meld
                         if after_meld:
-                            called_meld = []
+                            who_called_meld = []
 
                         is_tsumogiri = tile == player.tiles[-1]
 
@@ -163,8 +163,6 @@ class LogParser(object):
                         meld = self._parse_meld(tag)
                         player = table.get_player(meld.who)
 
-                        # let's skip chankan for now
-                        # later we can replace pon with this chankan
                         if meld.type == Meld.CHANKAN:
                             player.tiles.remove(meld.called_tile)
                         else:
@@ -177,13 +175,18 @@ class LogParser(object):
                             else:
                                 player.draw_tile(meld.called_tile)
 
+                            if meld.opened:
+                                for meld_player in table.players:
+                                    if meld_player.discards and meld_player.discards[-1].tile == meld.called_tile:
+                                        meld_player.discards[-1].was_given_for_meld = True
+
                             # for closed kan we had to remove tile from hand
                             if meld.type == Meld.KAN and not meld.opened:
                                 # in riichi we will not have tile in hand
                                 if meld.called_tile in player.tiles:
                                     player.tiles.remove(meld.called_tile)
 
-                            called_meld.append(meld.who)
+                            who_called_meld.append(meld.who)
 
                     if self._is_riichi(tag):
                         riichi_step = int(self._get_attribute_content(tag, 'step'))
