@@ -2,7 +2,7 @@
 from mahjong.meld import Meld
 
 
-class CSVExporter(object):
+class BetaoriCSVExporter(object):
 
     @staticmethod
     def header():

@@ -1,17 +1,13 @@
 # -*- coding: utf-8 -*-
 import bz2
 import csv
-import json
-import random
-import sqlite3
 import datetime
+import os
+import sqlite3
 from optparse import OptionParser
 
-import os
-
-from parser.csv_exporter import CSVExporter
-from parser.json_exporter import JsonExporter
-from parser.parser import LogParser
+from parser.parsers.betaori_parser import BetaoriParser
+from parser.parsers.tenpai_parser import TenpaiParser
 
 data_directory = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'visual', 'data')
 if not os.path.exists(data_directory):
@@ -27,44 +23,47 @@ def main():
 
     parser.add_option('-f', '--file-csv',
                       type='string',
-                      help='Where to save CSV')
+                      help='Path where to save output CSV')
 
     parser.add_option('-l', '--limit',
                       type='string',
                       help='For debugging',
                       default='unlimited')
 
+    parser.add_option('-p', '--protocol',
+                      type='string',
+                      help='hand or betaori',
+                      default='betaori')
+
     opts, _ = parser.parse_args()
 
     db_path = opts.data
-    export_format = 'csv'
     limit = opts.limit
     csv_file = opts.file_csv
+    protocol = opts.protocol
+
+    if protocol not in ['betaori', 'tenpai']:
+        parser.error('Possible values for protocol are: betaori or tenpai.')
 
     if not db_path:
-        parser.error('Path to db is not given with -p flag.')
+        parser.error('Path to db is not given with -d flag.')
 
-    if export_format not in ['json', 'csv']:
-        parser.error('Not valid exported format. Supported formatters: json, csv')
-
-    if export_format == 'csv' and not csv_file:
-        parser.error('CSV file is not given with -f flag.')
+    if protocol == 'betaori':
+        parser = BetaoriParser()
+    elif protocol == 'tenpai':
+        parser = TenpaiParser()
 
     print('Loading and decompressing logs content...')
     logs = load_logs(db_path, limit)
-
-    parser = LogParser()
 
     if os.path.exists(csv_file):
         print('')
         print('Warning! {} already exists!'.format(csv_file))
         print('')
     else:
-        # initial file header
-        if export_format == 'csv':
-            with open(csv_file, 'w') as f:
-                writer = csv.writer(f)
-                writer.writerow(CSVExporter.header())
+        with open(csv_file, 'w') as f:
+            writer = csv.writer(f)
+            writer.writerow(parser.csv_exporter.header())
 
     logs_count = 0
     samples_count = 0
@@ -89,28 +88,6 @@ def main():
 
     print('End')
     print('Total samples:  {}'.format(samples_count))
-
-
-def save_json_data(tenpai_players):
-    for player in tenpai_players:
-        # there is no sense to store all data in .json format
-        # for debug let's use only small number of tenpai hands
-        if random.random() < 0.999:
-            continue
-
-        file_name = '{}_{}_{}.json'.format(
-            player.table.log_id,
-            player.seat,
-            player.table.step,
-        )
-        print('http://127.0.0.1:8010/?hand={}'.format(file_name))
-
-        file_path = os.path.join(data_directory, file_name)
-        if os.path.exists(file_path):
-            os.remove(file_path)
-
-        with open(file_path, 'w') as f:
-            f.write(json.dumps(JsonExporter.export_player(player)))
 
 
 def save_csv_data(csv_records, csv_file):

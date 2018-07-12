@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import copy
 import logging
 import re
 
@@ -11,14 +10,13 @@ from mahjong.meld import Meld
 from mahjong.shanten import Shanten
 from mahjong.tile import TilesConverter
 
-from parser.csv_exporter import CSVExporter
-from parser.discard import Discard
 from parser.table import Table
 
 logger = logging.Logger('catch_all')
 
 
 class LogParser(object):
+    csv_exporter = None
 
     def get_game_hands(self, log_content, log_id):
         """
@@ -75,21 +73,21 @@ class LogParser(object):
         self.agari = Agari()
         self.finished_hand = HandCalculator()
 
-        csv_records = {}
+        self.csv_records = {}
 
-        step = 0
+        self.step = 0
         for hand in game:
-            table = Table()
+            self.table = Table()
 
-            who_called_meld = []
+            self.who_called_meld = []
             log_id = None
-            tenpai_player = None
+            self.tenpai_player = None
 
             try:
                 for tag in hand:
                     if self._is_log_id(tag):
                         log_id = self._get_attribute_content(tag, 'id')
-                        table.log_id = log_id
+                        self.table.log_id = log_id
 
                     if self._is_init_tag(tag):
                         seed = [int(x) for x in self._get_attribute_content(tag, 'seed').split(',')]
@@ -97,71 +95,32 @@ class LogParser(object):
                         dora_indicator = seed[5]
                         dealer_seat = int(self._get_attribute_content(tag, 'oya'))
 
-                        table.init(dealer_seat, current_hand, dora_indicator, step)
+                        self.table.init(dealer_seat, current_hand, dora_indicator, self.step)
 
-                        table.get_player(0).init_hand(self._get_attribute_content(tag, 'hai0'))
-                        table.get_player(1).init_hand(self._get_attribute_content(tag, 'hai1'))
-                        table.get_player(2).init_hand(self._get_attribute_content(tag, 'hai2'))
-                        table.get_player(3).init_hand(self._get_attribute_content(tag, 'hai3'))
+                        self.table.get_player(0).init_hand(self._get_attribute_content(tag, 'hai0'))
+                        self.table.get_player(1).init_hand(self._get_attribute_content(tag, 'hai1'))
+                        self.table.get_player(2).init_hand(self._get_attribute_content(tag, 'hai2'))
+                        self.table.get_player(3).init_hand(self._get_attribute_content(tag, 'hai3'))
 
-                        step += 1
+                        self.step += 1
 
-                        tenpai_player = None
+                        self.tenpai_player = None
 
                     if self._is_discard(tag):
-                        tile = self._parse_tile(tag)
-                        player_seat = self._get_player_seat(tag)
-                        player = table.get_player(player_seat)
-
-                        after_meld = player_seat in who_called_meld
-                        if after_meld:
-                            who_called_meld = []
-
-                        is_tsumogiri = tile == player.tiles[-1]
-
-                        after_riichi = tenpai_player and tenpai_player.in_riichi
-
-                        discard = Discard(tile, is_tsumogiri, after_meld, after_riichi, False)
-                        player.discard_tile(discard)
-
-                        # for now let's work only with hand state in moment of first tenpai
-                        if not tenpai_player:
-                            tiles_34 = TilesConverter.to_34_array(player.tiles)
-                            melds_34 = player.melds_34
-                            if self.shanten.calculate_shanten(tiles_34, melds_34) == 0:
-                                waiting = self._get_waiting(table.get_player(player_seat))
-                                player.set_waiting(waiting)
-
-                                has_furiten = False
-                                for waiting_34 in player.waiting:
-                                    discards_34 = [x.tile // 4 for x in player.discards]
-
-                                    if waiting_34 in discards_34:
-                                        has_furiten = True
-
-                                if not has_furiten:
-                                    waiting = self._calculate_costs(player)
-                                    atodzuke_waiting = [x for x in waiting if x['cost'] is None]
-                                    # for now we don't need to add atodzuke waiting
-                                    if len(atodzuke_waiting) != len(waiting):
-                                        tenpai_player = player
-                                        tenpai_player.waiting = waiting
+                        self.process_discard(tag)
 
                     if self._is_draw(tag):
                         tile = self._parse_tile(tag)
                         player_seat = self._get_player_seat(tag)
-                        player = table.get_player(player_seat)
+                        player = self.table.get_player(player_seat)
 
                         player.draw_tile(tile)
 
-                        if tenpai_player:
-                            key = '{}_{}'.format(step, player_seat)
-                            if key not in csv_records and tenpai_player.seat != player_seat:
-                                csv_records[key] = CSVExporter.export_player(tenpai_player, player)
+                        self.export_player_on_draw_tile(player_seat, player)
 
                     if self._is_meld_set(tag):
                         meld = self._parse_meld(tag)
-                        player = table.get_player(meld.who)
+                        player = self.table.get_player(meld.who)
 
                         # when we called chankan we need to remove pon set from hand
                         if meld.type == Meld.CHANKAN:
@@ -177,7 +136,7 @@ class LogParser(object):
 
                         # indication that tile was taken from discard
                         if meld.opened:
-                            for meld_player in table.players:
+                            for meld_player in self.table.players:
                                 if meld_player.discards and meld_player.discards[-1].tile == meld.called_tile:
                                     meld_player.discards[-1].was_given_for_meld = True
 
@@ -187,12 +146,12 @@ class LogParser(object):
                             if meld.called_tile in player.tiles:
                                 player.tiles.remove(meld.called_tile)
 
-                        who_called_meld.append(meld.who)
+                        self.who_called_meld.append(meld.who)
 
                     if self._is_riichi(tag):
                         riichi_step = int(self._get_attribute_content(tag, 'step'))
                         who = int(self._get_attribute_content(tag, 'who'))
-                        player = table.get_player(who)
+                        player = self.table.get_player(who)
 
                         if riichi_step == 1:
                             player.in_riichi = True
@@ -202,15 +161,19 @@ class LogParser(object):
 
                         if self._is_new_dora(tag):
                             dora = int(self._get_attribute_content(tag, 'hai'))
-                            table.add_dora(dora)
+                            self.table.add_dora(dora)
 
             except Exception as e:
                 logger.error(e, exc_info=True)
                 print('Failed to process log: {}'.format(log_id))
 
-            # tenpai_players.extend([x[1] for x in added_players.items()])
+        return [x[1] for x in self.csv_records.items()]
 
-        return [x[1] for x in csv_records.items()]
+    def process_discard(self, tag):
+        pass
+
+    def export_player_on_draw_tile(self, player_seat, player):
+        pass
 
     def _get_attribute_content(self, tag, attribute_name):
         result = re.findall(r'{}="([^"]*)"'.format(attribute_name), tag)

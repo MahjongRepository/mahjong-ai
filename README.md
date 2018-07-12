@@ -10,14 +10,23 @@ You can find information about it there: https://github.com/MahjongRepository/ph
 
 This script will prepare raw data for tests.
 
-`python parse_data.py -d /path/to/db/2017.db -f output.csv`
+1. `cd project`
+2. `python parse_data.py -d /path/to/db/2017.db -f output.csv -p betaori`
+
+`-d` - path to .sqlite3 db with logs content
+
+`-f` - path where to save output CSV
+
+`-l` - limit number of records to process (for debug). Int or `unlimited`
+
+`-p` - protocol. `betaori` or `tenpai`
 
 ## Prepare data for neural network tasks
 
 1. `cd project`
 2. `python prepare_data.py -f <path_to_train_data>.csv -t <path_to_test_data>.csv -p <task_name> [-c <val>] [-a <val>]`
 
-`-p` - task name, can be one of: `own_hand` or `betaori`
+`-p` - protocol, can be one of: `own_hand` or `betaori`
 
 `-c` - chunk size (by default, 100000)
 
