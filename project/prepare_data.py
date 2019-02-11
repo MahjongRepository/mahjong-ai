@@ -56,8 +56,15 @@ def main():
         parser.error('Path to .csv with test data is not given.')
 
     protocol_string = opts.protocol
-    if protocol_string not in ['hand', 'betaori']:
-        parser.error('Protocol hand to be hand or betaori')
+    protocols = {
+        'betaori': BetaoriProtocol(),
+        'own_hand': OwnHandProtocol(),
+    }
+
+    protocol = protocols.get(protocol_string)
+
+    if not protocol:
+        parser.error('Possible values for protocol are: {}.'.format(','.join(parsers.keys())))
 
     print('{} protocol will be used.'.format(protocol_string))
     print('Chunk size: {}. Test data percentage: {}'.format(chunk_size, test_data_percentage), end='\n\n')
@@ -91,12 +98,6 @@ def main():
 
     # our test data had to be in separate file
     # we need to skip data rows from original file to extract test data
-    print('Preparing tests data...')
-    if protocol_string == 'hand':
-        protocol = OwnHandProtocol()
-    else:
-        protocol = BetaoriProtocol()
-
     test_data = pd.read_csv(test_path, skiprows=skip_test_rows, names=header)
     test_data = test_data.replace([None, np.nan, 'None', 'NaN', 'nan'], '')
 
@@ -113,10 +114,7 @@ def main():
         file_name = 'chunk_{:03}.h5'.format(i)
         print('Processing {}...'.format(file_name))
 
-        if protocol_string == 'hand':
-            protocol = OwnHandProtocol()
-        else:
-            protocol = BetaoriProtocol()
+        protocol = protocols.get(protocol_string)
 
         chunk = chunk.replace([None, np.nan, 'None', 'NaN', 'nan'], '')
         protocol.parse_new_data(chunk.iterrows())

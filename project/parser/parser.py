@@ -10,6 +10,7 @@ from mahjong.meld import Meld
 from mahjong.shanten import Shanten
 from mahjong.tile import TilesConverter
 
+from parser.discard import Discard
 from parser.table import Table
 
 logger = logging.Logger('catch_all')
@@ -170,9 +171,38 @@ class LogParser(object):
         return [x[1] for x in self.csv_records.items()]
 
     def process_discard(self, tag):
-        pass
+        tile = self._parse_tile(tag)
+        player_seat = self._get_player_seat(tag)
+        player = self.table.get_player(player_seat)
+
+        after_meld = player_seat in self.who_called_meld
+        if after_meld:
+            self.who_called_meld = []
+
+        is_tsumogiri = tile == player.tiles[-1]
+
+        after_riichi = self.tenpai_player and self.tenpai_player.in_riichi
+
+        discard = Discard(tile, is_tsumogiri, after_meld, after_riichi, False)
+        player.discard_tile(discard)
+
+        # for now let's work only with hand state in moment of first tenpai
+        if not self.tenpai_player:
+            tiles_34 = TilesConverter.to_34_array(player.tiles)
+            melds_34 = player.melds_34
+            if self.shanten.calculate_shanten(tiles_34, melds_34) == 0:
+                waiting = self._get_waiting(self.table.get_player(player_seat))
+                player.set_waiting(waiting)
+
+                self.process_player_tenpai(player)
 
     def export_player_on_draw_tile(self, player_seat, player):
+        pass
+
+    def export_player_on_tenpai(self, tenpai_player):
+        pass
+
+    def process_player_tenpai(self, player):
         pass
 
     def _get_attribute_content(self, tag, attribute_name):

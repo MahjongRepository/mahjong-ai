@@ -7,11 +7,8 @@ import sqlite3
 from optparse import OptionParser
 
 from parser.parsers.betaori_parser import BetaoriParser
+from parser.parsers.own_hand_parser import OwnHandParser
 from parser.parsers.tenpai_parser import TenpaiParser
-
-data_directory = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'visual', 'data')
-if not os.path.exists(data_directory):
-    os.mkdir(data_directory)
 
 
 def main():
@@ -42,28 +39,31 @@ def main():
     csv_file = opts.file_csv
     protocol = opts.protocol
 
-    if protocol not in ['betaori', 'tenpai']:
-        parser.error('Possible values for protocol are: betaori or tenpai.')
-
     if not db_path:
         parser.error('Path to db is not given with -d flag.')
 
-    if protocol == 'betaori':
-        parser = BetaoriParser()
-    elif protocol == 'tenpai':
-        parser = TenpaiParser()
+    parsers = {
+        'betaori': BetaoriParser(),
+        'tenpai': TenpaiParser(),
+        'own_hand': OwnHandParser(),
+    }
+
+    logs_parser = parsers.get(protocol)
+
+    if not logs_parser:
+        parser.error('Possible values for protocol are: {}.'.format(','.join(parsers.keys())))
 
     print('Loading and decompressing logs content...')
     logs = load_logs(db_path, limit)
 
     if os.path.exists(csv_file):
         print('')
-        print('Warning! {} already exists!'.format(csv_file))
+        print('Warning! {} already exists! New data will append there.'.format(csv_file))
         print('')
     else:
         with open(csv_file, 'w') as f:
             writer = csv.writer(f)
-            writer.writerow(parser.csv_exporter.header())
+            writer.writerow(logs_parser.csv_exporter.header())
 
     logs_count = 0
     samples_count = 0
@@ -78,9 +78,9 @@ def main():
             print('Processed logs: {}/{}'.format(logs_count, count_of_logs))
             print('Samples: {}'.format(samples_count))
 
-        game = parser.get_game_hands(log_data['log_content'], log_data['log_id'])
+        game = logs_parser.get_game_hands(log_data['log_content'], log_data['log_id'])
 
-        csv_records = parser.extract_tenpai_players(game)
+        csv_records = logs_parser.extract_tenpai_players(game)
         save_csv_data(csv_records, csv_file)
 
         logs_count += 1
