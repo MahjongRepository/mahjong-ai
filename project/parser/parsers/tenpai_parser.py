@@ -26,8 +26,8 @@ class TenpaiParser(LogParser):
         discard = Discard(tile, is_tsumogiri, after_meld, after_riichi, False)
         player.discard_tile(discard)
 
-        # for now let's work only with hand state in moment of first tenpai
-        if not self.tenpai_player:
+        key = '{}_{}'.format(self.step, player.seat)
+        if key not in self.csv_records:
             tiles_34 = TilesConverter.to_34_array(player.tiles)
             melds_34 = player.melds_34
             if self.shanten.calculate_shanten(tiles_34, melds_34) == 0:
@@ -42,14 +42,20 @@ class TenpaiParser(LogParser):
                         has_furiten = True
 
                 if not has_furiten:
-                    waiting = self._calculate_costs(player)
-                    atodzuke_waiting = [x for x in waiting if x['cost'] is None]
+                    costs = self._calculate_costs(player)
+                    atodzuke = len([x for x in costs if x['cost'] is None]) > 0
 
-                    # for now we don't need to add atodzuke waiting
-                    if len(atodzuke_waiting) != len(waiting):
-                        self.tenpai_player = player
-                        self.tenpai_player.waiting = waiting
+                    yaku_id = []
+                    dora_number = 0
+                    for x in costs:
+                        for yaku in x['yaku']:
+                            yaku_id.append(str(yaku.yaku_id))
+                            if yaku.yaku_id == 52:
+                                dora_number += yaku.han_open
+                            if yaku.yaku_id == 54:
+                                dora_number += yaku.han_open
+                    yaku_id = list(set(yaku_id))
 
-                        key = '{}_{}'.format(self.step, self.tenpai_player.seat)
-                        if key not in self.csv_records:
-                            self.csv_records[key] = self.csv_exporter.export_player(self.tenpai_player)
+                    if yaku_id:
+                        hand_cost = max([x['cost'] or 0 for x in costs])
+                        self.csv_records[key] = self.csv_exporter.export_player(player, yaku_id, hand_cost, atodzuke, dora_number)

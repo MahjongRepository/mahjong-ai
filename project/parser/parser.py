@@ -341,6 +341,7 @@ class LogParser(object):
                     'han': None,
                     'fu': None,
                     'cost': None,
+                    'yaku': []
                 })
             else:
                 waiting.append({
@@ -348,6 +349,7 @@ class LogParser(object):
                     'han': result.han,
                     'fu': result.fu,
                     'cost': result.cost['main'],
+                    'yaku': result.yaku
                 })
 
         return waiting
