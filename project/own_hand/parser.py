@@ -8,10 +8,10 @@ class OwnHandParser(LogParser):
         self.csv_exporter = OwnHandCSVExporter()
 
     def process_player_tenpai(self, player):
-        self.tenpai_player = player
-        self.tenpai_player.waiting = self._calculate_costs(player)
-
-        self.export_player_on_tenpai(self.tenpai_player)
+        player.waiting = self._calculate_costs(player)
+        self.export_player_on_tenpai(player)
 
     def export_player_on_tenpai(self, tenpai_player):
-        self.csv_records[tenpai_player.seat] = self.csv_exporter.export_player(self.tenpai_player)
+        key = '{}_{}'.format(self.step, tenpai_player.seat)
+        if key not in self.csv_records:
+            self.csv_records[key] = self.csv_exporter.export_player(tenpai_player)
