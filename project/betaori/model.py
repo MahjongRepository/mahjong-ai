@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import logging
-import math
 import os
 import pickle
 
@@ -12,8 +11,8 @@ from keras.utils import HDF5Matrix
 from mahjong.tile import TilesConverter
 import numpy as np
 
-from nn.utils.plot_utils import plot_history
-from nn.utils.protocols.betaori_protocol import BetaoriProtocol
+from base.plot_utils import plot_history
+from own_hand.betaori_protocol import BetaoriProtocol
 
 logger = logging.getLogger('logs')
 

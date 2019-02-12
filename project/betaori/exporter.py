@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from parser.exporters.utils import encode_discards, encode_melds
+from base.utils import encode_discards, encode_melds
 
 
 class BetaoriCSVExporter(object):

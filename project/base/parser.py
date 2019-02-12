@@ -10,14 +10,15 @@ from mahjong.meld import Meld
 from mahjong.shanten import Shanten
 from mahjong.tile import TilesConverter
 
-from parser.discard import Discard
-from parser.table import Table
+from base.discard import Discard
+from base.table import Table
 
 logger = logging.Logger('catch_all')
 
 
-class LogParser(object):
+class LogParser:
     csv_exporter = None
+    tenpai_player = None
 
     def get_game_hands(self, log_content, log_id):
         """

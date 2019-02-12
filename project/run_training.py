@@ -2,8 +2,7 @@
 import os
 from optparse import OptionParser
 
-from nn.betaori import Betaori
-from nn.utils.logger import set_up_logging
+from base.logger import set_up_logging
 
 
 def main():

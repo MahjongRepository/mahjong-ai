@@ -1,5 +1,5 @@
-from parser.exporters.betaori_exporter import BetaoriCSVExporter
-from parser.parser import LogParser
+from base.parser import LogParser
+from betaori.exporter import BetaoriCSVExporter
 
 
 class BetaoriParser(LogParser):

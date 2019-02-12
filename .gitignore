@@ -1,8 +1,8 @@
 env
 .idea
-project/data
-project/logs
-project/processed_data
-project/visual/data
+
+data
+logs
+processed_data
 
 *.h5

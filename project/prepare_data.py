@@ -12,8 +12,8 @@ import pickle
 import pandas as pd
 import numpy as np
 
-from nn.utils.protocols.betaori_protocol import BetaoriProtocol
-from nn.utils.protocols.own_hand_protocol import OwnHandProtocol
+from betaori.protocol import BetaoriProtocol
+from own_hand.protocol import OwnHandProtocol
 
 
 def main():
@@ -64,12 +64,12 @@ def main():
     protocol = protocols.get(protocol_string)
 
     if not protocol:
-        parser.error('Possible values for protocol are: {}.'.format(','.join(parsers.keys())))
+        parser.error('Possible values for protocol are: {}.'.format(','.join(protocols.keys())))
 
     print('{} protocol will be used.'.format(protocol_string))
     print('Chunk size: {}. Test data percentage: {}'.format(chunk_size, test_data_percentage), end='\n\n')
 
-    root_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'processed_data')
+    root_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'processed_data')
     if not os.path.exists(root_dir):
         os.mkdir(root_dir)
 
@@ -97,7 +97,6 @@ def main():
         header = next(reader)
 
     # our test data had to be in separate file
-    # we need to skip data rows from original file to extract test data
     test_data = pd.read_csv(test_path, skiprows=skip_test_rows, names=header)
     test_data = test_data.replace([None, np.nan, 'None', 'NaN', 'nan'], '')
 

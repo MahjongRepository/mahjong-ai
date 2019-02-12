@@ -1,5 +1,5 @@
-from parser.exporters.own_hand_exporter import OwnHandCSVExporter
-from parser.parser import LogParser
+from base.parser import LogParser
+from own_hand.exporter import OwnHandCSVExporter
 
 
 class OwnHandParser(LogParser):

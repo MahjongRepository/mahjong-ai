@@ -9,10 +9,8 @@ from keras import models
 from keras.models import load_model
 from mahjong.tile import TilesConverter
 
-from nn.utils.protocols.own_hand_protocol import tiles_num, tiles_unique
 
-
-class HandWaits(object):
+class HandWaits:
     model_name = 'hand.h5'
     epochs = 16
 

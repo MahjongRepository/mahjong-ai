@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-from parser.exporters.utils import encode_melds
+from base.utils import encode_melds
 
 
-class OwnHandCSVExporter(object):
+class OwnHandCSVExporter:
 
     @staticmethod
     def header():

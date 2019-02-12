@@ -1,8 +1,8 @@
 from mahjong.tile import TilesConverter
 
-from parser.discard import Discard
-from parser.exporters.tenpai_exporter import TenpaiCSVExporter
-from parser.parser import LogParser
+from base.discard import Discard
+from base.parser import LogParser
+from tenpai.exporter import TenpaiCSVExporter
 
 
 class TenpaiParser(LogParser):

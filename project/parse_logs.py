@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
-import bz2
 import csv
-import datetime
+import logging
 import os
-import sqlite3
 from optparse import OptionParser
 
-from parser.parsers.betaori_parser import BetaoriParser
-from parser.parsers.own_hand_parser import OwnHandParser
-from parser.parsers.tenpai_parser import TenpaiParser
+from base.logger import set_up_logging
+from base.utils import load_logs, save_csv_data
+from betaori.parser import BetaoriParser
+from own_hand.parser import OwnHandParser
+from tenpai.parser import TenpaiParser
+
+logger = logging.getLogger('logs')
 
 
 def main():
@@ -29,8 +31,7 @@ def main():
 
     parser.add_option('-p', '--protocol',
                       type='string',
-                      help='hand or betaori',
-                      default='betaori')
+                      default=None)
 
     opts, _ = parser.parse_args()
 
@@ -53,13 +54,13 @@ def main():
     if not logs_parser:
         parser.error('Possible values for protocol are: {}.'.format(','.join(parsers.keys())))
 
-    print('Loading and decompressing logs content...')
+    set_up_logging('parser')
+    
+    logger.info('Loading and decompressing logs content...')
     logs = load_logs(db_path, limit)
 
     if os.path.exists(csv_file):
-        print('')
-        print('Warning! {} already exists! New data will append there.'.format(csv_file))
-        print('')
+        logger.info('Warning! {} already exists! New data will append there.'.format(csv_file))
     else:
         with open(csv_file, 'w') as f:
             writer = csv.writer(f)
@@ -68,15 +69,12 @@ def main():
     logs_count = 0
     samples_count = 0
     count_of_logs = len(logs)
-    print(get_date_string())
-    print('Starting processing...')
+    logger.info('Starting processing...')
 
     for log_data in logs:
         if logs_count > 0 and logs_count % 1000 == 0:
-            print('')
-            print(get_date_string())
-            print('Processed logs: {}/{}'.format(logs_count, count_of_logs))
-            print('Samples: {}'.format(samples_count))
+            logger.info('Processed logs: {}/{}'.format(logs_count, count_of_logs))
+            logger.info('Samples: {}'.format(samples_count))
 
         game = logs_parser.get_game_hands(log_data['log_content'], log_data['log_id'])
 
@@ -86,46 +84,8 @@ def main():
         logs_count += 1
         samples_count += len(csv_records)
 
-    print('End')
-    print('Total samples:  {}'.format(samples_count))
-
-
-def save_csv_data(csv_records, csv_file):
-    with open(csv_file, 'a') as f:
-        writer = csv.writer(f)
-        for record in csv_records:
-            writer.writerow(record)
-
-
-def load_logs(db_path, limit):
-    """
-    Load logs from db and decompress logs content.
-    How to download games content you can learn there: https://github.com/MahjongRepository/phoenix-logs
-    """
-    connection = sqlite3.connect(db_path)
-
-    with connection:
-        cursor = connection.cursor()
-        if limit == 'unlimited':
-            cursor.execute('SELECT log_id, log_content FROM logs where is_hirosima = 0;')
-        else:
-            limit = int(limit)
-            cursor.execute('SELECT log_id, log_content FROM logs where is_hirosima = 0 LIMIT ?;', [limit])
-
-        data = cursor.fetchall()
-
-    results = []
-    for x in data:
-        results.append({
-            'log_id': x[0],
-            'log_content': bz2.decompress(x[1]).decode('utf-8')
-        })
-
-    return results
-
-
-def get_date_string():
-    return datetime.datetime.now().strftime('%H:%M:%S')
+    logger.info('End')
+    logger.info('Total samples:  {}'.format(samples_count))
 
 
 if __name__ == '__main__':

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from mahjong.constants import EAST, SOUTH, WEST, NORTH
 
-from parser.player import Player
+from base.player import Player
 
 
 class Table(object):
