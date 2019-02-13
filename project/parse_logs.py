@@ -69,7 +69,7 @@ def main():
     logs_count = 0
     samples_count = 0
     count_of_logs = len(logs)
-    logger.info('Starting processing...')
+    logger.info('Starting processing {} logs...'.format(count_of_logs))
 
     for log_data in logs:
         if logs_count > 0 and logs_count % 1000 == 0:

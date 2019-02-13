@@ -12,6 +12,6 @@ class OwnHandParser(LogParser):
         self.export_player_on_tenpai(player)
 
     def export_player_on_tenpai(self, tenpai_player):
-        key = '{}_{}'.format(self.step, tenpai_player.seat)
+        key = '_'.join([str(x) for x in tenpai_player.closed_hand])
         if key not in self.csv_records:
             self.csv_records[key] = self.csv_exporter.export_player(tenpai_player)
