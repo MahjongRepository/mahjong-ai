@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import csv
+import logging
 import shutil
 import subprocess
 from optparse import OptionParser
@@ -12,8 +13,12 @@ import pickle
 import pandas as pd
 import numpy as np
 
+from base.logger import set_up_logging
 from betaori.protocol import BetaoriProtocol
 from own_hand.protocol import OwnHandProtocol
+
+
+logger = logging.getLogger('logs')
 
 
 def main():
@@ -57,8 +62,8 @@ def main():
 
     protocol_string = opts.protocol
     protocols = {
-        'betaori': BetaoriProtocol(),
-        'own_hand': OwnHandProtocol(),
+        'betaori': BetaoriProtocol,
+        'own_hand': OwnHandProtocol,
     }
 
     protocol = protocols.get(protocol_string)
@@ -66,8 +71,12 @@ def main():
     if not protocol:
         parser.error('Possible values for protocol are: {}.'.format(','.join(protocols.keys())))
 
-    print('{} protocol will be used.'.format(protocol_string))
-    print('Chunk size: {}. Test data percentage: {}'.format(chunk_size, test_data_percentage), end='\n\n')
+    protocol = protocol()
+
+    set_up_logging('prepare_data')
+    
+    logger.info('{} protocol will be used.'.format(protocol_string))
+    logger.info('Chunk size: {}. Test data percentage: {}'.format(chunk_size, test_data_percentage))
 
     root_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'processed_data')
     if not os.path.exists(root_dir):
@@ -75,7 +84,7 @@ def main():
 
     data_dir = os.path.join(root_dir, protocol_string)
     if os.path.exists(data_dir):
-        print('Data directory already exists. It was deleted.', end='\n\n')
+        logger.info('Data directory already exists. It was deleted.')
         shutil.rmtree(data_dir)
 
     os.mkdir(data_dir)
@@ -87,8 +96,8 @@ def main():
     test_rows = np.random.choice(range(1, test_total_count), test_count, replace=False)
     skip_test_rows = list(set(range(0, test_total_count)) - set(test_rows))
 
-    print('Train data size: {}'.format(total_count))
-    print('Test data size: {}'.format(len(test_rows)), end='\n\n')
+    logger.info('Train data size: {}'.format(total_count))
+    logger.info('Test data size: {}'.format(len(test_rows)))
 
     # pandas didn't add correct headers to csv by default
     # so we had to do it manually
@@ -103,17 +112,18 @@ def main():
     protocol.parse_new_data(test_data.iterrows())
 
     protocol_test_path = os.path.join(data_dir, 'test.p')
-    print('Saving test.p...')
+    logger.info('Saving test.p...')
     pickle.dump(protocol, open(protocol_test_path, 'wb'))
 
-    print('')
-    print('Processing train data...')
+    logger.info('')
+    logger.info('Processing train data...')
 
     for i, chunk in enumerate(pd.read_csv(data_path, chunksize=chunk_size)):
         file_name = 'chunk_{:03}.h5'.format(i)
-        print('Processing {}...'.format(file_name))
+        logger.info('Processing {}...'.format(file_name))
 
         protocol = protocols.get(protocol_string)
+        protocol = protocol()
 
         chunk = chunk.replace([None, np.nan, 'None', 'NaN', 'nan'], '')
         protocol.parse_new_data(chunk.iterrows())
@@ -132,7 +142,7 @@ def main():
                 dtype='float32'
             )
 
-        print('Data size =', len(protocol.input_data))
+        logger.info('Data size = {}'.format(len(protocol.input_data)))
 
         gc.collect()
 

@@ -12,11 +12,17 @@ class OwnHandProtocol:
 
     def parse_new_data(self, raw_data):
         for index, row in raw_data:
-            tiles = [0 for x in range(self.tiles_num)]
-
-            waiting = [0 for x in range(self.tiles_unique)]
             waiting_temp = [x for x in row['tenpai_player_waiting'].split(',')]
+            if not waiting_temp:
+                continue
+
+            tiles = [0 for x in range(self.tiles_num)]
+            waiting = [0 for x in range(self.tiles_unique)]
+
             for x in waiting_temp:
+                if not x:
+                    continue
+
                 temp = x.split(';')
                 tile = int(temp[0]) // 4
                 waiting[tile] = 1
