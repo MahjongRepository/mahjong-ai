@@ -11,8 +11,8 @@ from keras.utils import HDF5Matrix
 from mahjong.tile import TilesConverter
 import numpy as np
 
-from base.plot_utils import plot_history
-from own_hand.betaori_protocol import BetaoriProtocol
+# from base.plot_utils import plot_history
+from betaori.protocol import BetaoriProtocol
 
 logger = logging.getLogger('logs')
 
@@ -24,7 +24,7 @@ class LoggingCallback(Callback):
         logger.info(msg)
 
 
-class Betaori(object):
+class BetaoriModel:
     model_name = 'betaori.h5'
 
     model_attributes = {

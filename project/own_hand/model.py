@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import csv
+import logging
 import os
 import pickle
 
@@ -7,103 +7,120 @@ import numpy as np
 from keras import layers
 from keras import models
 from keras.models import load_model
+from keras.utils import HDF5Matrix
 from mahjong.tile import TilesConverter
 
+from own_hand.protocol import OwnHandProtocol
 
-class HandWaits:
-    model_name = 'hand.h5'
-    epochs = 16
+logger = logging.getLogger('logs')
 
-    def __init__(self, root_dir, data_path, print_predictions):
+
+class OwnHandModel:
+    model_name = 'own_hand.h5'
+
+    model_attributes = {
+        'optimizer': 'rmsprop',
+        'loss': 'binary_crossentropy'
+    }
+
+    output = 'tanh'
+    units = 1024
+    batch_size = 256
+
+    def __init__(self, root_dir, data_path, print_predictions, epochs, need_visualize):
         self.model_path = os.path.join(root_dir, self.model_name)
-        self.data_path = os.path.join(data_path, 'hand')
+        self.data_path = os.path.join(data_path, 'own_hand')
         self.print_predictions = print_predictions
+        self.need_visualize = need_visualize
+
+        self.epochs = epochs
+
+        self.graphs_data = []
 
     def remove_model(self):
         if os.path.exists(self.model_path):
             os.remove(self.model_path)
 
     def run(self):
+        logger.info('Epochs: {}'.format(self.epochs))
+        logger.info('Batch size: {}'.format(self.batch_size))
+        logger.info('Model attributes: {}'.format(self.model_attributes))
+        logger.info('Output: {}'.format(self.output))
+        logger.info('Units: {}'.format(self.units))
+        logger.info('')
+
         test_file_path = os.path.join(self.data_path, 'test.p')
         test_data = pickle.load(open(test_file_path, 'rb'))
 
         test_samples = len(test_data.input_data)
         test_input = np.asarray(test_data.input_data).astype('float32')
         test_output = np.asarray(test_data.output_data).astype('float32')
-        print('Test data size =', test_samples)
+        logger.info('Test data size = {}'.format(test_samples))
 
         if not os.path.exists(self.model_path):
             data_files_temp = os.listdir(self.data_path)
             data_files = []
             for f in data_files_temp:
-                if not f.endswith('.p'):
-                    continue
-                if f.endswith('test.p'):
+                if not f.endswith('.h5'):
                     continue
 
                 data_files.append(f)
 
             train_files = sorted(data_files)
-            print('{} files will be used for training'.format(len(train_files)))
+            logger.info('{} files will be used for training'.format(len(train_files)))
 
             model = models.Sequential()
-            model.add(layers.Dense(1024, activation='relu', input_shape=(tiles_num,)))
-            model.add(layers.Dense(1024, activation='relu'))
-            model.add(layers.Dense(tiles_unique, activation='sigmoid'))
+            model.add(layers.Dense(self.units, activation='relu', input_shape=(OwnHandProtocol.input_size,)))
+            model.add(layers.Dense(self.units, activation='relu'))
+            model.add(layers.Dense(OwnHandProtocol.tiles_unique, activation=self.output))
 
-            for n_epoch in range(self.epochs):
-                print('')
-                print('Processing epoch #{}...'.format(n_epoch))
+            model.compile(**self.model_attributes)
+
+            for n_epoch in range(1, self.epochs + 1):
+                logger.info('')
+                logger.info('Processing epoch #{}...'.format(n_epoch))
+
                 for train_file in train_files:
-                    print('Processing {}...'.format(train_file))
-                    data_path = os.path.join(self.data_path, train_file)
-                    train_data = pickle.load(open(data_path, "rb"))
+                    logger.info('Processing {}...'.format(train_file))
+                    h5_file_path = os.path.join(self.data_path, train_file)
 
-                    train_samples = len(train_data.input_data)
-                    train_input = np.asarray(train_data.input_data).astype('float32')
-                    train_output = np.asarray(train_data.output_data).astype('float32')
+                    train_input = HDF5Matrix(h5_file_path, 'input_data')
+                    train_output = HDF5Matrix(h5_file_path, 'output_data')
 
-                    print('Train data size =', train_samples)
-
-                    model.compile(
-                        optimizer='rmsprop',
-                        loss='binary_crossentropy',
-                        metrics=['accuracy']
-                    )
+                    logger.info('Train data size = {}'.format(train_input.size / OwnHandProtocol.input_size))
 
                     model.fit(
                         train_input,
                         train_output,
+                        # we need it to work with md5 data
+                        shuffle='batch',
                         epochs=1,
-                        batch_size=512,
+                        batch_size=self.batch_size,
                         validation_data=(test_input, test_output)
                     )
 
+                logger.info('Predictions after epoch #{}'.format(n_epoch))
+                self.calculate_predictions(model,
+                                           test_input,
+                                           test_output,
+                                           n_epoch)
+
                 # We save model after each epoch
-                print('Saving model, please don\'t interrupt...')
+                logger.info('Saving model, please don\'t interrupt...')
                 model.save(self.model_path)
-                print('Model saved')
+                logger.info('Model saved')
         else:
             model = load_model(self.model_path)
 
         results = model.evaluate(test_input, test_output, verbose=1)
-        print('results [loss, acc] =', results)
+        logger.info('results [loss, acc] = {}'.format(results))
 
         if self.print_predictions:
-            self.calculate_predictions(model, test_input, test_output)
+            self.calculate_predictions(model, test_input, test_output, None)
 
-    def load_data(self, path):
-        data = []
-        with open(path, 'r') as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                if row['player_hand'] and row['waiting']:
-                    data.append(row)
-        return data
-
-    def calculate_predictions(self, model, test_input, test_output):
+    def calculate_predictions(self, model, test_input, test_output, epoch):
         predictions = model.predict(test_input, verbose=1)
-        print('predictions shape = ', predictions.shape)
+        logger.info('predictions shape = {}'.format(predictions.shape))
 
         i = 0
         wrong_predictions = 0
@@ -139,17 +156,17 @@ class HandWaits:
                 j += 1
 
             if set(waits) != set(pred):
-                print('wrong prediction on i =', i)
-                print('hand:', TilesConverter.to_one_line_string(hand))
-                print('waits:', TilesConverter.to_one_line_string(waits))
-                print('pred:', TilesConverter.to_one_line_string(pred))
-                print('pred_sure:', TilesConverter.to_one_line_string(pred_sure))
-                print('pred_unsure:', TilesConverter.to_one_line_string(pred_unsure))
+                # logger.info('wrong prediction on i = {}'.format(i))
+                # logger.info('hand: {}'.format(TilesConverter.to_one_line_string(hand)))
+                # logger.info('waits: {}'.format(TilesConverter.to_one_line_string(waits)))
+                # logger.info('pred: {}'.format(TilesConverter.to_one_line_string(pred)))
+                # logger.info('pred_sure: {}'.format(TilesConverter.to_one_line_string(pred_sure)))
+                # logger.info('pred_unsure: {}'.format(TilesConverter.to_one_line_string(pred_unsure)))
                 wrong_predictions += 1
 
             i += 1
 
         correct_predictions = i - wrong_predictions
 
-        print('Predictions: total = %d, correct = %d, wrong = %d' % (i, correct_predictions, wrong_predictions))
-        print('%% correct: %f' % (correct_predictions * 1.0 / i))
+        logger.info('Predictions: total = %d, correct = %d, wrong = %d' % (i, correct_predictions, wrong_predictions))
+        logger.info('%% correct: %f' % (correct_predictions * 1.0 / i))
