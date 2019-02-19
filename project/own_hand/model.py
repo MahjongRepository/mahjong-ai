@@ -23,9 +23,9 @@ class OwnHandModel:
         'loss': 'binary_crossentropy'
     }
 
-    output = 'tanh'
+    output = 'sigmoid'
     units = 1024
-    batch_size = 256
+    batch_size = 512
 
     def __init__(self, root_dir, data_path, print_predictions, epochs, need_visualize):
         self.model_path = os.path.join(root_dir, self.model_name)
@@ -156,13 +156,13 @@ class OwnHandModel:
                 j += 1
 
             if set(waits) != set(pred):
+                wrong_predictions += 1
                 # logger.info('wrong prediction on i = {}'.format(i))
                 # logger.info('hand: {}'.format(TilesConverter.to_one_line_string(hand)))
                 # logger.info('waits: {}'.format(TilesConverter.to_one_line_string(waits)))
                 # logger.info('pred: {}'.format(TilesConverter.to_one_line_string(pred)))
                 # logger.info('pred_sure: {}'.format(TilesConverter.to_one_line_string(pred_sure)))
                 # logger.info('pred_unsure: {}'.format(TilesConverter.to_one_line_string(pred_unsure)))
-                wrong_predictions += 1
 
             i += 1
 
