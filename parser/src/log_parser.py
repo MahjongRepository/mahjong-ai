@@ -3,15 +3,11 @@ import logging
 import re
 
 from mahjong.agari import Agari
-from mahjong.constants import AKA_DORA_LIST
 from mahjong.hand_calculating.hand import HandCalculator
-from mahjong.hand_calculating.hand_config import HandConfig
 from mahjong.meld import Meld
 from mahjong.shanten import Shanten
-from mahjong.tile import TilesConverter
 
-from base.discard import Discard
-from base.table import Table
+from src.primitives.table import Table
 
 logger = logging.Logger('catch_all')
 
@@ -75,8 +71,6 @@ class LogParser:
         self.agari = Agari()
         self.finished_hand = HandCalculator()
 
-        self.csv_records = {}
-
         self.step = 0
         for hand in game:
             self.table = Table()
@@ -108,17 +102,12 @@ class LogParser:
 
                         self.tenpai_player = None
 
-                    if self._is_discard(tag):
-                        self.process_discard(tag)
-
                     if self._is_draw(tag):
                         tile = self._parse_tile(tag)
                         player_seat = self._get_player_seat(tag)
                         player = self.table.get_player(player_seat)
 
                         player.draw_tile(tile)
-
-                        self.export_player_on_draw_tile(player_seat, player)
 
                     if self._is_meld_set(tag):
                         meld = self._parse_meld(tag)
@@ -168,43 +157,6 @@ class LogParser:
             except Exception as e:
                 logger.error(e, exc_info=True)
                 print('Failed to process log: {}'.format(log_id))
-
-        return [x[1] for x in self.csv_records.items()]
-
-    def process_discard(self, tag):
-        tile = self._parse_tile(tag)
-        player_seat = self._get_player_seat(tag)
-        player = self.table.get_player(player_seat)
-
-        after_meld = player_seat in self.who_called_meld
-        if after_meld:
-            self.who_called_meld = []
-
-        is_tsumogiri = tile == player.tiles[-1]
-
-        after_riichi = self.tenpai_player and self.tenpai_player.in_riichi
-
-        discard = Discard(tile, is_tsumogiri, after_meld, after_riichi, False)
-        player.discard_tile(discard)
-
-        # for now let's work only with hand state in moment of first tenpai
-        if not self.tenpai_player:
-            tiles_34 = TilesConverter.to_34_array(player.tiles)
-            melds_34 = player.melds_34
-            if self.shanten.calculate_shanten(tiles_34, melds_34) == 0:
-                waiting = self._get_waiting(self.table.get_player(player_seat))
-                player.set_waiting(waiting)
-
-                self.process_player_tenpai(player)
-
-    def export_player_on_draw_tile(self, player_seat, player):
-        pass
-
-    def export_player_on_tenpai(self, tenpai_player):
-        pass
-
-    def process_player_tenpai(self, player):
-        pass
 
     def _get_attribute_content(self, tag, attribute_name):
         result = re.findall(r'{}="([^"]*)"'.format(attribute_name), tag)
@@ -320,67 +272,3 @@ class LogParser:
 
     def _is_new_dora(self, tag):
         return tag and '<DORA' in tag
-
-    def _get_waiting(self, player):
-        tiles = player.closed_hand
-        if len(tiles) == 1:
-            return [tiles[0] // 4]
-
-        tiles_34 = TilesConverter.to_34_array(tiles)
-
-        waiting = []
-        for j in range(0, 34):
-            # we already have 4 tiles in hand
-            # and we can't wait on 5th
-            if tiles_34[j] == 4:
-                continue
-
-            tiles_34[j] += 1
-            if self.agari.is_agari(tiles_34):
-                waiting.append(j)
-            tiles_34[j] -= 1
-
-        return waiting
-
-    def _calculate_costs(self, player):
-        waiting = []
-        for tile in player.waiting:
-            config = HandConfig(
-                is_riichi=player.discards[-1].after_riichi,
-                player_wind=player.player_wind,
-                round_wind=player.table.round_wind,
-                has_aka_dora=True,
-                has_open_tanyao=True
-            )
-
-            win_tile = tile * 4
-            # we don't need to think, that our waiting is aka dora
-            if win_tile in AKA_DORA_LIST:
-                win_tile += 1
-
-            tiles = player.tiles + [win_tile]
-
-            result = self.finished_hand.estimate_hand_value(tiles,
-                                                            win_tile,
-                                                            player.melds,
-                                                            player.table.dora_indicators,
-                                                            config)
-
-            if result.error:
-                waiting.append({
-                    'tile': win_tile,
-                    'han': None,
-                    'fu': None,
-                    'cost': None,
-                    'yaku': []
-                })
-            else:
-                waiting.append({
-                    'tile': win_tile,
-                    'han': result.han,
-                    'fu': result.fu,
-                    'cost': result.cost['main'],
-                    'yaku': result.yaku
-                })
-
-        return waiting

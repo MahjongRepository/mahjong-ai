@@ -4,7 +4,7 @@ import copy
 from mahjong.constants import EAST, NORTH, WEST, SOUTH
 
 
-class Player(object):
+class Player:
 
     def __init__(self, table, seat, dealer_seat):
         self.table = table
