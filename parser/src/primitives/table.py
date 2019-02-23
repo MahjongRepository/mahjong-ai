@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from mahjong.constants import EAST, SOUTH, WEST, NORTH
 
 from src.primitives.player import Player

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 
 class Discard:
@@ -9,4 +8,12 @@ class Discard:
         self.after_meld = after_meld
         self.after_riichi = after_riichi
         self.tenpai_after_discard = tenpai_after_discard
-        self.was_given_for_meld = False
+
+    def to_json(self):
+        return {
+            'tile': self.tile,
+            'is_tsumogiri': self.is_tsumogiri,
+            'after_meld': self.after_meld,
+            'after_riichi': self.after_riichi,
+            'tenpai_after_discard': self.tenpai_after_discard,
+        }

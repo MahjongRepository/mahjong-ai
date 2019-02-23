@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import copy
 
 from mahjong.constants import EAST, NORTH, WEST, SOUTH
@@ -11,9 +10,7 @@ class Player:
 
         self.tiles = []
         self.discards = []
-        self.waiting = []
         self.melds = []
-        self.cost = 0
         self.seat = seat
         self.dealer_seat = dealer_seat
         self.in_riichi = False
@@ -35,9 +32,6 @@ class Player:
 
     def add_meld(self, meld):
         self.melds.append(meld)
-
-    def set_waiting(self, waiting):
-        self.waiting = waiting
 
     @property
     def player_wind(self):

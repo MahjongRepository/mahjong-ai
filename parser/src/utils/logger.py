@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
+import datetime
 import logging
 import os
-
-import datetime
 
 
 def set_up_logging(prefix):

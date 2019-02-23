@@ -1,7 +1,7 @@
-# -*- coding: utf-8 -*-
 import logging
 from optparse import OptionParser
 
+from src.hand_parser import HandsParser
 from src.utils.logger import set_up_logging
 from src.utils.utils import load_logs
 
@@ -10,6 +10,10 @@ logger = logging.getLogger('logs')
 
 def main():
     parser = OptionParser()
+
+    parser.add_option('-o', '--output',
+                      type='string',
+                      help='The output format')
 
     parser.add_option('-d', '--data',
                       type='string',
@@ -24,9 +28,17 @@ def main():
 
     db_path = opts.data
     limit = opts.limit
+    output = opts.output
 
     if not db_path:
-        parser.error('Path to db is not given with -d flag.')
+        parser.error('Path to db is not given.')
+
+    allowed_outputs = {
+        'hand': HandsParser()
+    }
+
+    if not allowed_outputs.get(output):
+        parser.error('Not correct output. Available options: {}'.format(', '.join(allowed_outputs.keys())))
 
     set_up_logging('parser')
 
@@ -44,6 +56,7 @@ def main():
             logger.info('Samples: {}'.format(samples_count))
 
         print(log_data['log_content'])
+        print(log_data['log_id'])
 
     logger.info('End')
     logger.info('Total samples:  {}'.format(samples_count))
