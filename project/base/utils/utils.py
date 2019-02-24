@@ -2,6 +2,8 @@ import bz2
 import json
 import sqlite3
 
+from base.primitives.meld import ParserMeld
+
 
 def load_logs(db_path, limit):
     """
@@ -17,6 +19,7 @@ def load_logs(db_path, limit):
         else:
             limit = int(limit)
             cursor.execute('SELECT log_id, log_content FROM logs where is_hirosima = 0 LIMIT ?;', [limit])
+            # cursor.execute('SELECT log_id, log_content FROM logs where log_id = "2018050310gm-00a9-0000-786296ec";')
 
         data = cursor.fetchall()
 
@@ -28,6 +31,29 @@ def load_logs(db_path, limit):
         })
 
     return results
+
+
+def encode_discards(player_discards):
+    discards = []
+    for x in player_discards:
+        discards.append('{};{};{};{};{}'.format(
+            x.tile,
+            x.is_tsumogiri and 1 or 0,
+            x.after_meld and 1 or 0,
+            x.after_riichi and 1 or 0,
+            x.was_given_for_meld and 1 or 0,
+            ))
+    return ','.join(discards)
+
+
+def encode_melds(player_melds):
+    melds = []
+    for meld in player_melds:
+        meld_type = meld.type
+        if meld_type == ParserMeld.KAN and not meld.opened:
+            meld_type = 'closed_kan'
+        melds.append('{};{}'.format(meld_type, '/'.join([str(x) for x in meld.tiles])))
+    return ','.join(melds)
 
 
 class CompactJSONEncoder(json.JSONEncoder):

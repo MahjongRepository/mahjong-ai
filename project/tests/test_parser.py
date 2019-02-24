@@ -2,9 +2,9 @@ import json
 import os
 import unittest
 
-from src.hand_parser import HandsParser
-from src.log_parser import LogParser
-from src.utils.utils import CompactJSONEncoder
+from base.log_parser import LogParser
+from base.utils.utils import CompactJSONEncoder
+from betaori.parser import BetaoriParser
 
 
 class ClientTestCase(unittest.TestCase):
@@ -18,8 +18,8 @@ class ClientTestCase(unittest.TestCase):
         )
         self.assertEqual(len(rounds_data), 9)
 
-    def test_prepare_hand_building_output(self):
-        parser = HandsParser()
+    def test_prepare_betaori_output(self):
+        parser = BetaoriParser()
         rounds_data = self._load_game_rounds_data(
             parser,
             'one_round.xml',
@@ -28,16 +28,7 @@ class ClientTestCase(unittest.TestCase):
         data = parser.parse_game_rounds(rounds_data)
         self._print_pretty_json(data)
 
-        self.assertEqual(len(data), 37)
-
-        for item in data:
-            self.assertIsNotNone(item.get('hand'))
-            self.assertIsNotNone(item.get('discards'))
-            self.assertIsNotNone(item.get('melds'))
-            self.assertIsNotNone(item.get('discarded_tile'))
-
-            self.assertTrue(len(item.get('hand')) > 0)
-            self.assertTrue(len(item.get('hand')) <= 14)
+        self.assertEqual(len(data), 12)
 
     def _print_pretty_json(self, data):
         print(json.dumps(data, indent=2, cls=CompactJSONEncoder))

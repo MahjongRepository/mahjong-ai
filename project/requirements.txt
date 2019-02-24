@@ -1,0 +1,12 @@
+mahjong==1.1.6
+
+tensorflow-gpu==1.12.0
+Keras==2.2.4
+
+h5py==2.9.0
+
+pandas==0.24.1
+numpy==1.16.1
+
+# it requires "sudo apt-get install python3-tk"
+matplotlib==2.2.3

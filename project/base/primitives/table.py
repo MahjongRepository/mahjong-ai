@@ -1,6 +1,6 @@
 from mahjong.constants import EAST, SOUTH, WEST, NORTH
 
-from src.primitives.player import Player
+from base.primitives.player import Player
 
 
 class Table:

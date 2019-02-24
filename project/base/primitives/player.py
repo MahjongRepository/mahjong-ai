@@ -11,9 +11,11 @@ class Player:
         self.tiles = []
         self.discards = []
         self.melds = []
+        self.waiting = []
         self.seat = seat
         self.dealer_seat = dealer_seat
         self.in_riichi = False
+        self.in_tempai = False
 
     def init_hand(self, tiles_string):
         tiles = [int(x) for x in tiles_string.split(',')]

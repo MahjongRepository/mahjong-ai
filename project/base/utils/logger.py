@@ -4,7 +4,13 @@ import os
 
 
 def set_up_logging(prefix):
-    logs_directory = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', '..', 'logs')
+    logs_directory = os.path.join(
+        os.path.dirname(os.path.realpath(__file__)),
+        '..',
+        '..',
+        '..',
+        'logs'
+    )
     if not os.path.exists(logs_directory):
         os.mkdir(logs_directory)
 
