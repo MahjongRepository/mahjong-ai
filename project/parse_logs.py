@@ -88,6 +88,8 @@ def main():
             for record in records:
                 writer.writerow(record)
 
+        logs_count += 1
+
     logger.info('End')
     logger.info('Total samples:  {}'.format(samples_count))
 
