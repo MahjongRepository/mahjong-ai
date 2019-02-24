@@ -136,6 +136,8 @@ class LogParser:
                             tenpai_after_discard = True
 
                             self.on_player_tenpai(player, table)
+                        else:
+                            player.in_tempai = False
 
                         player.discards[-1].tenpai_after_discard = tenpai_after_discard
                         who_called_meld_on_this_step = None
