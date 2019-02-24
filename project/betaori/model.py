@@ -118,6 +118,10 @@ class BetaoriModel:
 
         self.calculate_predictions(model, test_input, test_verification, None)
 
+        if self.graphs_data:
+            best_result = sorted(self.graphs_data, key=lambda x: x['avg_min_wait_pos'], reverse=True)[0]
+            logger.info('Best result: {}'.format(best_result))
+
         if self.need_visualize:
             plot_history(self.graphs_data)
 
