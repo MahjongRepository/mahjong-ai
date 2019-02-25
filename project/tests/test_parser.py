@@ -3,7 +3,6 @@ import os
 import unittest
 
 from base.log_parser import LogParser
-from base.utils.utils import CompactJSONEncoder
 from betaori.parser import BetaoriParser
 
 
@@ -31,7 +30,7 @@ class ClientTestCase(unittest.TestCase):
         self.assertTrue(len(data) > 0)
 
     def _print_pretty_json(self, data):
-        print(json.dumps(data, indent=2, cls=CompactJSONEncoder))
+        print(json.dumps(data, indent=2))
 
     def _load_game_rounds_data(self, parser, file_name, log_id):
         data_path = os.path.join(os.path.dirname(
