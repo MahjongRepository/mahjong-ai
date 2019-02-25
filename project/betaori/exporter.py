@@ -1,48 +1,7 @@
-#
-#
-# class BetaoriDataExporter:
-#
-#     @staticmethod
-#     def export_player(tenpai_player, player):
-#         table = tenpai_player.table
-#
-#         added_seats = [tenpai_player.seat, player.seat]
-#         another_players = []
-#
-#         for x in table.players:
-#             if x.seat not in added_seats:
-#                 another_players.append(x)
-#                 added_seats.append(x.seat)
-#
-#         second_player = another_players[0]
-#         third_player = another_players[1]
-#
-#         return {
-#             'debug_tenpai_player_hand': tenpai_player.closed_hand,
-#
-#             'log_id': table.log_id,
-#             'round_wind': table.round_wind,
-#             'dora_indicators': table.dora_indicators,
-#             'tenpai_player_waiting': tenpai_player.waiting,
-#             'tenpai_player_discards': [x.to_json() for x in tenpai_player.discards],
-#             'tenpai_player_melds': [x.to_json() for x in tenpai_player.melds],
-#             'tenpai_player_wind': tenpai_player.player_wind,
-#             'tenpai_player_in_riichi': tenpai_player.in_riichi,
-#             'player_hand': player.closed_hand,
-#             'player_discards': [x.to_json() for x in player.discards],
-#             'player_melds': [x.to_json() for x in player.melds],
-#             'second_player_discards': [x.to_json() for x in second_player.discards],
-#             'second_player_melds': [x.to_json() for x in second_player.melds],
-#             'thirds_player_discards': [x.to_json() for x in third_player.discards],
-#             'third_player_melds': [x.to_json() for x in third_player.melds],
-#         }
-
-
-# -*- coding: utf-8 -*-
 from base.utils.utils import encode_discards, encode_melds
 
 
-class BetaoriCSVExporter(object):
+class BetaoriCSVExporter:
 
     @staticmethod
     def header():

@@ -1,11 +1,14 @@
-# -*- coding: utf-8 -*-
 import itertools
 
+from betaori.exporter import BetaoriCSVExporter
 
-class BetaoriProtocol(object):
+
+class BetaoriProtocol:
     tiles_unique = 34
     tiles_num = tiles_unique * 4
     input_size = tiles_num * 5 + tiles_num * 2 * 2 + tiles_unique
+
+    exporter = BetaoriCSVExporter
 
     def __init__(self):
         self.input_data = []

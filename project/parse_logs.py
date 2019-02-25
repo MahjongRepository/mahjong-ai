@@ -1,6 +1,7 @@
 import csv
 import logging
 import os
+import subprocess
 from optparse import OptionParser
 
 from base.utils.logger import set_up_logging
@@ -59,10 +60,6 @@ def main():
 
     if os.path.exists(output_file):
         logger.warning('File {} already exists! New data will append there.'.format(output_file))
-    else:
-        with open(output_file, 'w') as f:
-            writer = csv.writer(f)
-            writer.writerow(parser.csv_exporter.header())
 
     set_up_logging('parser')
 
@@ -89,6 +86,12 @@ def main():
                 writer.writerow(record)
 
         logs_count += 1
+
+    logger.info('Shuffle output file')
+    subprocess.run('shuf -o {} < {}'.format(
+        os.path.abspath(output_file),
+        os.path.abspath(output_file)
+    ), shell=True)
 
     logger.info('End')
     logger.info('Total samples:  {}'.format(samples_count))

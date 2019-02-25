@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-import csv
 import logging
 import shutil
 import subprocess
@@ -115,9 +113,7 @@ def main():
 
     # pandas didn't add correct headers to csv by default
     # so we had to do it manually
-    with open(data_path, 'r') as f:
-        reader = csv.reader(f)
-        header = next(reader)
+    header = protocol.exporter.header()
 
     # our test data had to be in separate file
     test_data = pd.read_csv(test_path, skiprows=skip_test_rows, names=header)
@@ -132,7 +128,7 @@ def main():
     logger.info('')
     logger.info('Processing train data...')
 
-    for i, chunk in enumerate(pd.read_csv(data_path, chunksize=chunk_size)):
+    for i, chunk in enumerate(pd.read_csv(data_path, chunksize=chunk_size, names=header)):
         file_name = 'chunk_{:03}.h5'.format(i)
         logger.info('Processing {}...'.format(file_name))
 

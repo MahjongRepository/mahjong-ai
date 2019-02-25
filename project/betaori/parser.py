@@ -1,3 +1,5 @@
+import random
+
 from base.log_parser import LogParser
 from betaori.exporter import BetaoriCSVExporter
 
@@ -37,5 +39,6 @@ class BetaoriParser(LogParser):
         tenpai_players = [x for x in table.players if x.in_tempai]
 
         for tenpai_player in tenpai_players:
-            if tenpai_player.seat != player.seat:
+            need_to_add = player.seat == random.randint(0, 4)
+            if tenpai_player.seat != player.seat and need_to_add:
                 self.data_to_save.append(self.csv_exporter.export_player(tenpai_player, player))
