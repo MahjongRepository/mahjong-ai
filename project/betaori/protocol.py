@@ -6,7 +6,7 @@ from betaori.exporter import BetaoriCSVExporter
 class BetaoriProtocol:
     tiles_unique = 34
     tiles_num = tiles_unique * 4
-    input_size = 408
+    input_size = tiles_unique * 10
 
     exporter = BetaoriCSVExporter
 
@@ -158,18 +158,8 @@ class BetaoriProtocol:
                 tsumogiri,
                 after_meld,
                 melds,
-                # discards_order,
-                sp_discards,
-                # sp_tsumogiri,
-                # sp_after_meld,
-                sp_melds,
-                # sp_discards_order,
-                tp_discards,
-                # tp_tsumogiri,
-                # tp_after_meld,
-                tp_melds,
-                # tp_discards_order,
-                # player_hand,
+                discards_last,
+                discards_second_last,
                 out_tiles_0,
                 out_tiles_1,
                 out_tiles_2,

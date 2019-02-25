@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import pickle
@@ -120,7 +121,8 @@ class BetaoriModel:
 
         if self.graphs_data:
             best_result = sorted(self.graphs_data, key=lambda x: x['avg_min_wait_pos'], reverse=True)[0]
-            logger.info('Best result: {}'.format(best_result))
+            logger.info('Best result')
+            logger.info(json.dumps(best_result, indent=2))
 
         if self.need_visualize:
             plot_history(self.graphs_data)
