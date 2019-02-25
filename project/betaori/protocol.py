@@ -6,7 +6,7 @@ from betaori.exporter import BetaoriCSVExporter
 class BetaoriProtocol:
     tiles_unique = 34
     tiles_num = tiles_unique * 4
-    input_size = tiles_num * 5 + tiles_num * 2 * 2 + tiles_unique
+    input_size = 408
 
     exporter = BetaoriCSVExporter
 
@@ -26,40 +26,57 @@ class BetaoriProtocol:
         # Fifth row - how long ago tile was discarded, 1 for first discard,
         #             and decreases by 0.025 for each following discard
         # NB: this should correspond to input_size variable!
-        discards = [0 for x in range(BetaoriProtocol.tiles_num)]
-        tsumogiri = [0 for x in range(BetaoriProtocol.tiles_num)]
-        after_meld = [0 for x in range(BetaoriProtocol.tiles_num)]
-        melds = [0 for x in range(BetaoriProtocol.tiles_num)]
-        discards_order = [0 for x in range(BetaoriProtocol.tiles_num)]
-
-        discard_order_value = 1
-        discard_order_step = 0.025
+        discards = [0 for x in range(BetaoriProtocol.tiles_unique)]
+        tsumogiri = [1 for x in range(BetaoriProtocol.tiles_unique)]
+        after_meld = [0 for x in range(BetaoriProtocol.tiles_unique)]
+        melds = [0 for x in range(BetaoriProtocol.tiles_unique)]
+        discards_last = [0 for x in range(BetaoriProtocol.tiles_unique)]
+        discards_second_last = [0 for x in range(BetaoriProtocol.tiles_unique)]
 
         discards_temp = BetaoriProtocol.prepare_discards(discards_data)
         for x in discards_temp:
-            tile = x[0]
+            tile = x[0] // 4
             is_tsumogiri = x[1]
             is_after_meld = x[2]
             after_riichi = x[3]
             taken_for_meld = x[4]
 
             discards[tile] = 1
-            tsumogiri[tile] = is_tsumogiri
-            after_meld[tile] = is_after_meld
-            discards_order[tile] = discard_order_value
-            discard_order_value -= discard_order_step
+            if is_tsumogiri == 1:
+                tsumogiri[tile] = is_tsumogiri
+            if after_meld[tile] == 0:
+                after_meld[tile] = is_after_meld
 
-            out_tiles[tile // 4] += 0.25
+            out_tiles[tile] += 1
+
+        is_last = True
+        for x in reversed(discards_temp):
+            tile = x[0] // 4
+            is_tsumogiri = x[1]
+
+            if is_last:
+                if is_tsumogiri == 0:
+                    discards_last[tile] = 1
+                    is_last = False
+                    continue
+                else:
+                    continue
+            else:
+                if is_tsumogiri == 0:
+                    discards_second_last[tile] = 1
+                    break
+                else:
+                    continue
 
         melds_temp = BetaoriProtocol.prepare_melds(melds_data)
         for x in melds_temp:
             tiles = x[0]
             for tile in tiles:
+                tile = tile // 4
                 melds[tile] = 1
+                out_tiles[tile] += 1
 
-                out_tiles[tile // 4] += 0.25
-
-        return discards, tsumogiri, after_meld, melds, discards_order, out_tiles
+        return discards, tsumogiri, after_meld, melds, discards_last, discards_second_last, out_tiles
 
     @staticmethod
     def prepare_discards(data):
@@ -103,22 +120,22 @@ class BetaoriProtocol:
     def parse_new_data(self, raw_data):
         for index, row in raw_data:
             # total number of out tiles (all discards, all melds, player hand, dora indicators)
-            out_tiles = [0 for x in range(BetaoriProtocol.tiles_num // 4)]
+            out_tiles = [0 for x in range(BetaoriProtocol.tiles_unique)]
             defending_hand = []
 
-            discards, tsumogiri, after_meld, melds, discards_order, out_tiles = BetaoriProtocol.process_discards(
+            discards, tsumogiri, after_meld, melds, discards_last, discards_second_last, out_tiles = BetaoriProtocol.process_discards(
                 row['tenpai_player_discards'],
                 row['tenpai_player_melds'],
                 out_tiles
             )
 
-            sp_discards, sp_tsumogiri, sp_after_meld, sp_melds, sp_discards_order, out_tiles = BetaoriProtocol.process_discards(
+            sp_discards, sp_tsumogiri, sp_after_meld, sp_melds, sp_discards_last, sp_discards_second_last, out_tiles = BetaoriProtocol.process_discards(
                 row['second_player_discards'],
                 row['second_player_melds'],
                 out_tiles
             )
 
-            tp_discards, tp_tsumogiri, tp_after_meld, tp_melds, tp_discards_order, out_tiles = BetaoriProtocol.process_discards(
+            tp_discards, tp_tsumogiri, tp_after_meld, tp_melds, tp_discards_last, tp_discards_second_last, out_tiles = BetaoriProtocol.process_discards(
                 row['third_player_discards'],
                 row['third_player_melds'],
                 out_tiles
@@ -126,17 +143,22 @@ class BetaoriProtocol:
 
             for x in [int(x) for x in row['player_hand'].split(',')]:
                 defending_hand.append(x // 4)
-                out_tiles[x // 4] += 0.25
+                out_tiles[x // 4] += 1
 
             for x in [int(x) for x in str(row['dora_indicators']).split(',')]:
-                out_tiles[x // 4] += 0.25
+                out_tiles[x // 4] += 1
+
+            out_tiles_0 = [1 if x >= 1 else 0 for x in out_tiles]
+            out_tiles_1 = [1 if x >= 2 else 0 for x in out_tiles]
+            out_tiles_2 = [1 if x >= 3 else 0 for x in out_tiles]
+            out_tiles_3 = [1 if x == 4 else 0 for x in out_tiles]
 
             input_data = list(itertools.chain(
                 discards,
                 tsumogiri,
                 after_meld,
                 melds,
-                discards_order,
+                # discards_order,
                 sp_discards,
                 # sp_tsumogiri,
                 # sp_after_meld,
@@ -148,7 +170,10 @@ class BetaoriProtocol:
                 tp_melds,
                 # tp_discards_order,
                 # player_hand,
-                out_tiles,
+                out_tiles_0,
+                out_tiles_1,
+                out_tiles_2,
+                out_tiles_3,
             ))
 
             if len(input_data) != BetaoriProtocol.input_size:
