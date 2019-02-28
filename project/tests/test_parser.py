@@ -3,7 +3,7 @@ import os
 import unittest
 
 from base.log_parser import LogParser
-from betaori.parser import BetaoriParser
+from betaori_closed_hand.parser import BetaoriClosedHandParser
 
 
 class ClientTestCase(unittest.TestCase):
@@ -18,7 +18,7 @@ class ClientTestCase(unittest.TestCase):
         self.assertEqual(len(rounds_data), 9)
 
     def test_prepare_betaori_output(self):
-        parser = BetaoriParser()
+        parser = BetaoriClosedHandParser()
         rounds_data = self._load_game_rounds_data(
             parser,
             'one_round.xml',

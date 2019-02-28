@@ -1,7 +1,7 @@
 from base.utils.utils import encode_discards, encode_melds
 
 
-class BetaoriCSVExporter:
+class BetaoriClosedHandCSVExporter:
 
     @staticmethod
     def header():

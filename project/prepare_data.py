@@ -12,7 +12,8 @@ import pandas as pd
 import numpy as np
 
 from base.utils.logger import set_up_logging
-from betaori.protocol import BetaoriProtocol
+from betaori_closed_hand.protocol import BetaoriClosedHandProtocol
+from betaori_open_hand.protocol import BetaoriOpenHandProtocol
 
 logger = logging.getLogger('logs')
 
@@ -23,8 +24,13 @@ def main():
     parser.add_option(
         '-p', '--protocol',
         type='string',
-        help='hand or betaori',
-        default='betaori'
+         default='betaori_closed_hand'
+    )
+
+    parser.add_option(
+        '-o', '--output',
+        type='string',
+        help='The output directory name'
     )
 
     parser.add_option(
@@ -37,12 +43,6 @@ def main():
         '-t', '--test-path',
         type='string',
         help='Path to .csv with test data.'
-    )
-
-    parser.add_option(
-        '-o', '--output',
-        type='string',
-        help='The output directory name'
     )
 
     parser.add_option(
@@ -75,13 +75,14 @@ def main():
 
     protocol_string = opts.protocol
     protocols = {
-        'betaori': BetaoriProtocol,
+        'betaori_closed_hand': BetaoriClosedHandProtocol,
+        'betaori_open_hand': BetaoriOpenHandProtocol,
     }
 
     protocol = protocols.get(protocol_string)
 
     if not protocol:
-        parser.error('Possible values for protocol are: {}.'.format(','.join(protocols.keys())))
+        parser.error('Possible values for protocol are: {}'.format(','.join(protocols.keys())))
 
     protocol = protocol()
 

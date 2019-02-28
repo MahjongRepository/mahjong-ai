@@ -1,24 +1,17 @@
-import json
 import logging
-import os
-import pickle
 
 import numpy as np
-from keras import layers
-from keras import models
 from keras.callbacks import Callback
-from keras.models import load_model
-from keras.utils import HDF5Matrix
 from mahjong.tile import TilesConverter
 
-from betaori.protocol import BetaoriProtocol
-from betaori.results_visualization import plot_history
+from base.model import Model
+from betaori_closed_hand.protocol import BetaoriClosedHandProtocol
 
 logger = logging.getLogger('logs')
 
 
-class BetaoriModel:
-    model_name = 'betaori.h5'
+class BetaoriClosedHandModel(Model):
+    model_name = 'betaori_closed_hand.h5'
 
     model_attributes = {
         'optimizer': 'sgd',
@@ -29,130 +22,7 @@ class BetaoriModel:
     units = 1024
     batch_size = 256
 
-    input_size = BetaoriProtocol.input_size
-
-    def __init__(self, root_dir, data_path, print_predictions, epochs, need_visualize):
-        self.model_path = os.path.join(root_dir, self.model_name)
-        self.data_path = data_path
-        self.print_predictions = print_predictions
-        self.need_visualize = need_visualize
-
-        self.epochs = epochs
-
-        self.graphs_data = []
-
-    def remove_model(self):
-        if os.path.exists(self.model_path):
-            os.remove(self.model_path)
-
-    def run(self):
-        logger.info('Epochs: {}'.format(self.epochs))
-        logger.info('Batch size: {}'.format(self.batch_size))
-        logger.info('Model attributes: {}'.format(self.model_attributes))
-        logger.info('Output: {}'.format(self.output))
-        logger.info('Units: {}'.format(self.units))
-        logger.info('')
-
-        test_file_path = os.path.join(self.data_path, 'test.p')
-        test_data = pickle.load(open(test_file_path, 'rb'))
-
-        test_samples = len(test_data.input_data)
-        test_input = np.asarray(test_data.input_data).astype('float32')
-        test_output = np.asarray(test_data.output_data).astype('float32')
-        test_verification = test_data.verification_data
-        logger.info('Test data size = {}'.format(test_samples))
-
-        if not os.path.exists(self.model_path):
-            data_files_temp = os.listdir(self.data_path)
-            data_files = []
-            for f in data_files_temp:
-                if not f.endswith('.h5'):
-                    continue
-
-                data_files.append(f)
-
-            train_files = sorted(data_files)
-            logger.info('{} files will be used for training'.format(len(train_files)))
-
-            model = self.create_and_compile_model()
-
-            for n_epoch in range(1, self.epochs + 1):
-                logger.info('')
-                logger.info('Processing epoch #{}...'.format(n_epoch))
-
-                for train_file in train_files:
-                    logger.info('Processing {}...'.format(train_file))
-                    h5_file_path = os.path.join(self.data_path, train_file)
-
-                    train_input = HDF5Matrix(h5_file_path, 'input_data')
-                    train_output = HDF5Matrix(h5_file_path, 'output_data')
-
-                    logger.info('Train data size = {}'.format(train_input.size / self.input_size))
-
-                    model.fit(
-                        train_input,
-                        train_output,
-                        # we need it to work with md5 data
-                        shuffle='batch',
-                        epochs=1,
-                        batch_size=self.batch_size,
-                        validation_data=(test_input, test_output)
-                    )
-
-                logger.info('Predictions after epoch #{}'.format(n_epoch))
-                self.calculate_predictions(
-                    model,
-                    test_input,
-                    test_verification,
-                    n_epoch
-                )
-
-                # We save model after each epoch
-                logger.info('Saving model, please don\'t interrupt...')
-                model.save(self.model_path)
-                logger.info('Model saved')
-        else:
-            model = load_model(self.model_path)
-
-        results = model.evaluate(test_input, test_output, verbose=1)
-        logger.info('results [loss, acc] = {}'.format(results))
-
-        self.calculate_predictions(model, test_input, test_verification, None)
-
-        if self.graphs_data:
-            best_result = sorted(self.graphs_data, key=lambda x: x['avg_min_wait_pos'], reverse=True)[0]
-            logger.info('Best result')
-            logger.info(json.dumps(best_result, indent=2))
-
-        if self.need_visualize:
-            plot_history(self.graphs_data)
-
-    def create_and_compile_model(self):
-        model = models.Sequential()
-        model.add(layers.Dense(self.units, activation='relu', input_shape=(BetaoriProtocol.input_size,)))
-        model.add(layers.Dense(self.units, activation='relu'))
-        model.add(layers.Dense(BetaoriProtocol.tiles_unique, activation=self.output))
-
-        model.compile(**self.model_attributes)
-
-        return model
-
-    def tiles_34_to_sting_unsorted(self, tiles):
-        string = ''
-        for tile in tiles:
-            if tile < 9:
-                string += str(tile + 1) + 'm'
-            elif 9 <= tile < 18:
-                string += str(tile - 9 + 1) + 'p'
-            elif 18 <= tile < 27:
-                string += str(tile - 18 + 1) + 's'
-            else:
-                string += str(tile - 27 + 1) + 'z'
-
-        return string
-
-    def tiles_136_to_sting_unsorted(self, tiles):
-        return self.tiles_34_to_sting_unsorted([x // 4 for x in tiles])
+    input_size = BetaoriClosedHandProtocol.input_size
 
     def calculate_predictions(self, model, test_input, test_verification, epoch):
         predictions = model.predict(test_input, verbose=1)
@@ -259,9 +129,9 @@ class BetaoriModel:
 
             # Here we adjust out values, so they are 0 in worst-case scenario
             # and 1 in best-case scenario
-            sum_min_wait_position += (min_wait_pos / (BetaoriProtocol.tiles_unique - num_waits))
-            sum_max_wait_position += ((max_wait_pos - num_waits) / (BetaoriProtocol.tiles_unique - num_waits))
-            sum_avg_wait_position += ((avg_wait_pos - avg_pos_offset) / (BetaoriProtocol.tiles_unique - num_waits))
+            sum_min_wait_position += (min_wait_pos / (BetaoriClosedHandProtocol.tiles_unique - num_waits))
+            sum_max_wait_position += ((max_wait_pos - num_waits) / (BetaoriClosedHandProtocol.tiles_unique - num_waits))
+            sum_avg_wait_position += ((avg_wait_pos - avg_pos_offset) / (BetaoriClosedHandProtocol.tiles_unique - num_waits))
             sum_genbutsu_error += genbutsu_error
             sum_min_wait_position_in_hand += min_wait_position_in_hand_coefficient
 
@@ -291,6 +161,23 @@ class BetaoriModel:
                     'avg_min_wait_pos_in_hand': avg_min_wait_position_in_hand
                 }
             )
+
+    def tiles_34_to_sting_unsorted(self, tiles):
+        string = ''
+        for tile in tiles:
+            if tile < 9:
+                string += str(tile + 1) + 'm'
+            elif 9 <= tile < 18:
+                string += str(tile - 9 + 1) + 'p'
+            elif 18 <= tile < 27:
+                string += str(tile - 18 + 1) + 's'
+            else:
+                string += str(tile - 27 + 1) + 'z'
+
+        return string
+
+    def tiles_136_to_sting_unsorted(self, tiles):
+        return self.tiles_34_to_sting_unsorted([x // 4 for x in tiles])
 
 
 class LoggingCallback(Callback):

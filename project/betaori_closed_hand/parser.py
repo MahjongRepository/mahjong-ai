@@ -1,17 +1,28 @@
 import random
 
 from base.log_parser import LogParser
-from betaori.exporter import BetaoriCSVExporter
+from betaori_closed_hand.exporter import BetaoriClosedHandCSVExporter
 
 
-class BetaoriParser(LogParser):
+class BetaoriClosedHandParser(LogParser):
 
     def __init__(self):
-        super(BetaoriParser, self).__init__()
+        super(BetaoriClosedHandParser, self).__init__()
 
-        self.csv_exporter = BetaoriCSVExporter()
+        self.csv_exporter = BetaoriClosedHandCSVExporter()
+
+    def export_condition(self, player):
+        # we want to collect only examples with closed hands
+        open_melds = [x.tiles for x in player.melds if x.opened]
+        if open_melds:
+            return False
+
+        return True
 
     def on_player_tenpai(self, player, table):
+        if not self.export_condition(player):
+            return False
+
         waiting = self.get_player_waiting(player)
 
         has_furiten = False

@@ -6,7 +6,8 @@ from optparse import OptionParser
 
 from base.utils.logger import set_up_logging
 from base.utils.utils import load_logs
-from betaori.parser import BetaoriParser
+from betaori_closed_hand.parser import BetaoriClosedHandParser
+from betaori_open_hand.parser import BetaoriOpenHandParser
 
 logger = logging.getLogger('logs')
 
@@ -50,7 +51,8 @@ def main():
         parser.error('Path to db is not given.')
 
     allowed_outputs = {
-        'betaori': BetaoriParser()
+        'betaori_closed_hand': BetaoriClosedHandParser(),
+        'betaori_open_hand': BetaoriOpenHandParser(),
     }
 
     if not allowed_outputs.get(output_format):

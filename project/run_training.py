@@ -2,7 +2,8 @@ import os
 from optparse import OptionParser
 
 from base.utils.logger import set_up_logging
-from betaori.model import BetaoriModel
+from betaori_closed_hand.model import BetaoriClosedHandModel
+from betaori_open_hand.model import BetaoriOpenHandModel
 
 
 def main():
@@ -11,8 +12,7 @@ def main():
     parser.add_option(
         '-p', '--protocol',
         type='string',
-        help='hand or betaori',
-        default='betaori'
+        default='betaori_closed_hand'
     )
 
     parser.add_option(
@@ -67,7 +67,8 @@ def main():
         return
 
     protocols = {
-        'betaori': BetaoriModel,
+        'betaori_closed_hand': BetaoriClosedHandModel,
+        'betaori_open_hand': BetaoriOpenHandModel,
     }
 
     protocol = protocols.get(protocol_string)
