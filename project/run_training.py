@@ -4,6 +4,7 @@ from optparse import OptionParser
 from base.utils.logger import set_up_logging
 from betaori_closed_hand.model import BetaoriClosedHandModel
 from betaori_open_hand.model import BetaoriOpenHandModel
+from hand_cost_open.model import OpenHandCostModel
 
 
 def main():
@@ -69,6 +70,7 @@ def main():
     protocols = {
         'betaori_closed_hand': BetaoriClosedHandModel,
         'betaori_open_hand': BetaoriOpenHandModel,
+        'hand_cost_open': OpenHandCostModel,
     }
 
     protocol = protocols.get(protocol_string)

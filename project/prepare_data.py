@@ -14,6 +14,7 @@ import numpy as np
 from base.utils.logger import set_up_logging
 from betaori_closed_hand.protocol import BetaoriClosedHandProtocol
 from betaori_open_hand.protocol import BetaoriOpenHandProtocol
+from hand_cost_open.protocol import OpenHandCostProtocol
 
 logger = logging.getLogger('logs')
 
@@ -77,6 +78,7 @@ def main():
     protocols = {
         'betaori_closed_hand': BetaoriClosedHandProtocol,
         'betaori_open_hand': BetaoriOpenHandProtocol,
+        'hand_cost_open': OpenHandCostProtocol
     }
 
     protocol = protocols.get(protocol_string)

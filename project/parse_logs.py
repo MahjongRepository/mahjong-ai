@@ -8,6 +8,7 @@ from base.utils.logger import set_up_logging
 from base.utils.utils import load_logs
 from betaori_closed_hand.parser import BetaoriClosedHandParser
 from betaori_open_hand.parser import BetaoriOpenHandParser
+from hand_cost_open.parser import OpenHandCostParser
 
 logger = logging.getLogger('logs')
 
@@ -53,6 +54,7 @@ def main():
     allowed_outputs = {
         'betaori_closed_hand': BetaoriClosedHandParser(),
         'betaori_open_hand': BetaoriOpenHandParser(),
+        'hand_cost_open': OpenHandCostParser(),
     }
 
     if not allowed_outputs.get(output_format):
