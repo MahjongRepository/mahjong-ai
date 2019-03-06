@@ -1,3 +1,4 @@
+import json
 import logging
 
 import numpy as np
@@ -24,6 +25,11 @@ class BetaoriClosedHandModel(Model):
 
     input_size = BetaoriClosedHandProtocol.input_size
     output_size = BetaoriClosedHandProtocol.output_size
+
+    def print_best_result(self):
+        best_result = sorted(self.graphs_data['first'], key=lambda x: x['avg_min_wait_pos'], reverse=True)[0]
+        logger.info('Best result')
+        logger.info(json.dumps(best_result, indent=2))
 
     def calculate_predictions(self, model, test_input, test_output, test_verification, epoch):
         predictions = model.predict(test_input, verbose=1)
@@ -152,14 +158,20 @@ class BetaoriClosedHandModel(Model):
         logger.info('avg_min_wait_pos_in_hand (jap metrics) = {}'.format(avg_min_wait_position_in_hand))
 
         if epoch:
-            self.graphs_data.append(
+            self.graphs_data['first'].append(
                 {
                     'epoch': epoch,
                     'avg_min_wait_pos': avg_min_wait_position,
                     'avg_max_wait_pos': avg_max_wait_position,
                     'avg_avg_wait_pos': avg_avg_wait_position,
+                    'jap_metric': avg_min_wait_position_in_hand
+                }
+            )
+
+            self.graphs_data['second'].append(
+                {
+                    'epoch': epoch,
                     'avg_genbutsu_error': avg_genbutsu_error,
-                    'avg_min_wait_pos_in_hand': avg_min_wait_position_in_hand
                 }
             )
 

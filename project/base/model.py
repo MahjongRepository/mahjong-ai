@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 import pickle
@@ -9,7 +8,7 @@ from keras import models
 from keras.models import load_model
 from keras.utils import HDF5Matrix
 
-from betaori_closed_hand.results_visualization import plot_history
+from base.results_visualization import show_graphs
 
 logger = logging.getLogger('logs')
 
@@ -34,7 +33,10 @@ class Model:
 
         self.epochs = epochs
 
-        self.graphs_data = []
+        self.graphs_data = {
+            'first': [],
+            'second': [],
+        }
 
     def remove_model(self):
         if os.path.exists(self.model_path):
@@ -116,12 +118,10 @@ class Model:
         self.calculate_predictions(model, test_input, test_output, test_verification, None)
 
         if self.graphs_data:
-            best_result = sorted(self.graphs_data, key=lambda x: x['avg_min_wait_pos'], reverse=True)[0]
-            logger.info('Best result')
-            logger.info(json.dumps(best_result, indent=2))
+            self.print_best_result()
 
-        if self.need_visualize:
-            plot_history(self.graphs_data)
+        if self.need_visualize and self.graphs_data:
+            show_graphs(self.graphs_data)
 
     def create_and_compile_model(self):
         model = models.Sequential()
@@ -134,6 +134,9 @@ class Model:
         return model
 
     def calculate_predictions(self, model, test_input, test_output, test_verification, epoch):
+        pass
+
+    def print_best_result(self):
         pass
 
     def tiles_34_to_sting_unsorted(self, tiles):

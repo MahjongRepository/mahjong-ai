@@ -1,3 +1,4 @@
+import json
 import logging
 
 import numpy as np
@@ -26,6 +27,11 @@ class OpenHandCostModel(Model):
 
     input_size = OpenHandCostProtocol.input_size
     output_size = OpenHandCostProtocol.output_size
+
+    def print_best_result(self):
+        best_result = sorted(self.graphs_data['first'], key=lambda x: x['fscore'], reverse=True)[0]
+        logger.info('Best result')
+        logger.info(json.dumps(best_result, indent=2))
 
     def calculate_predictions(self, model, test_input, test_output, test_verification, epoch):
         predictions = model.predict(test_input, verbose=1)
@@ -95,3 +101,21 @@ class OpenHandCostModel(Model):
         logger.info('recall: {}'.format(recall))
         logger.info('fscore (more is better): {}'.format(fscore))
         logger.info('mean squared error: {}'.format(mean_squared_error_result))
+
+        if epoch:
+            self.graphs_data['first'].append(
+                {
+                    'epoch': epoch,
+                    'accuracy': accuracy,
+                    'precision': precision,
+                    'recall': recall,
+                    'fscore': fscore
+                }
+            )
+
+            self.graphs_data['second'].append(
+                {
+                    'epoch': epoch,
+                    'mean_squared_error': mean_squared_error_result,
+                }
+            )
