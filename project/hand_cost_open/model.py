@@ -72,7 +72,7 @@ class OpenHandCostModel(Model):
 
             test_confusion = session.run(confusion)
             logger.info('confusion matrix: ')
-            logger.info('\n' + '\n'.join([''.join(['{:4}'.format(item) for item in row]) for row in test_confusion]))
+            logger.info('\n' + '\n'.join([''.join(['{:8}'.format(item) for item in row]) for row in test_confusion]))
 
         accuracy = accuracy_score(
             real_indices,

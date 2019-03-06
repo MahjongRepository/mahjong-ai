@@ -139,11 +139,12 @@ class OpenHandCostProtocol(Protocol):
     def create_hand_cost_key(han, fu):
         if fu >= 60:
             han += 1
+            fu = 30
+
+        if han >= 13:
+            han = 13
 
         if han >= 5:
-            key = str(han)
-        elif han >= 13:
-            han = 13
             key = str(han)
         else:
             key = '{}-{}'.format(han, fu)
