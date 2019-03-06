@@ -4,7 +4,6 @@ class Protocol:
 
     input_size = None
     output_size = None
-    exporter = None
 
     def __init__(self):
         self.input_data = []

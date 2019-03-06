@@ -1,7 +1,6 @@
 import itertools
 
 from base.protocol import Protocol
-from hand_cost_open.exporter import OpenHandCostCSVExporter
 
 
 class OpenHandCostProtocol(Protocol):
@@ -10,8 +9,6 @@ class OpenHandCostProtocol(Protocol):
 
     input_size = tiles_unique * 6
     output_size = 9
-
-    exporter = OpenHandCostCSVExporter
 
     hand_cost_mapping = {
         '1-30': 0,

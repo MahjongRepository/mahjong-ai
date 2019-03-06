@@ -1,14 +1,11 @@
 import itertools
 
 from base.protocol import Protocol
-from betaori_closed_hand.exporter import BetaoriClosedHandCSVExporter
 
 
 class BetaoriClosedHandProtocol(Protocol):
     input_size = Protocol.tiles_unique * 10
     output_size = Protocol.tiles_unique
-
-    exporter = BetaoriClosedHandCSVExporter
 
     def parse_new_data(self, raw_data):
         for index, row in raw_data:

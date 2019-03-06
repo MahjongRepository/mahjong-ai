@@ -11,6 +11,7 @@ import pickle
 import pandas as pd
 import numpy as np
 
+from base.csv_exporter import CSVExporter
 from base.utils.logger import set_up_logging
 from betaori_closed_hand.protocol import BetaoriClosedHandProtocol
 from betaori_open_hand.protocol import BetaoriOpenHandProtocol
@@ -116,7 +117,7 @@ def main():
 
     # pandas didn't add correct headers to csv by default
     # so we had to do it manually
-    header = protocol.exporter.header()
+    header = CSVExporter.header()
 
     # our test data had to be in separate file
     test_data = pd.read_csv(test_path, skiprows=skip_test_rows, names=header)
