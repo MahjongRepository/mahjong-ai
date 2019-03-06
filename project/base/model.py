@@ -9,7 +9,6 @@ from keras import models
 from keras.models import load_model
 from keras.utils import HDF5Matrix
 
-from betaori_closed_hand.protocol import BetaoriClosedHandProtocol
 from betaori_closed_hand.results_visualization import plot_history
 
 logger = logging.getLogger('logs')
@@ -25,6 +24,7 @@ class Model:
     batch_size = None
 
     input_size = None
+    output_size = None
 
     def __init__(self, root_dir, data_path, print_predictions, epochs, need_visualize):
         self.model_path = os.path.join(root_dir, self.model_name)
@@ -124,9 +124,9 @@ class Model:
 
     def create_and_compile_model(self):
         model = models.Sequential()
-        model.add(layers.Dense(self.units, activation='relu', input_shape=(BetaoriClosedHandProtocol.input_size,)))
+        model.add(layers.Dense(self.units, activation='relu', input_shape=(self.input_size,)))
         model.add(layers.Dense(self.units, activation='relu'))
-        model.add(layers.Dense(BetaoriClosedHandProtocol.tiles_unique, activation=self.output))
+        model.add(layers.Dense(self.output_size, activation=self.output))
 
         model.compile(**self.model_attributes)
 

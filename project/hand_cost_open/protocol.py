@@ -1,13 +1,14 @@
 import itertools
 
-from betaori_closed_hand.protocol import BetaoriClosedHandProtocol
 from hand_cost_open.exporter import OpenHandCostCSVExporter
 
 
 class OpenHandCostProtocol:
     tiles_unique = 34
     tiles_num = tiles_unique * 4
-    input_size = tiles_unique * 10
+
+    input_size = tiles_unique * 6
+    output_size = 9
 
     exporter = OpenHandCostCSVExporter
 
@@ -19,22 +20,22 @@ class OpenHandCostProtocol:
     def parse_new_data(self, raw_data):
         for index, row in raw_data:
             # total number of out tiles (all discards, all melds, player hand, dora indicators)
-            out_tiles = [0 for x in range(BetaoriClosedHandProtocol.tiles_unique)]
+            out_tiles = [0 for x in range(OpenHandCostProtocol.tiles_unique)]
             defending_hand = []
 
-            discards, tsumogiri, after_meld, melds, discards_last, discards_second_last, out_tiles = BetaoriClosedHandProtocol.process_discards(
+            discards, tsumogiri, after_meld, melds, discards_last, discards_second_last, out_tiles = OpenHandCostProtocol.process_discards(
                 row['tenpai_player_discards'],
                 row['tenpai_player_melds'],
                 out_tiles
             )
 
-            sp_discards, sp_tsumogiri, sp_after_meld, sp_melds, sp_discards_last, sp_discards_second_last, out_tiles = BetaoriClosedHandProtocol.process_discards(
+            sp_discards, sp_tsumogiri, sp_after_meld, sp_melds, sp_discards_last, sp_discards_second_last, out_tiles = OpenHandCostProtocol.process_discards(
                 row['second_player_discards'],
                 row['second_player_melds'],
                 out_tiles
             )
 
-            tp_discards, tp_tsumogiri, tp_after_meld, tp_melds, tp_discards_last, tp_discards_second_last, out_tiles = BetaoriClosedHandProtocol.process_discards(
+            tp_discards, tp_tsumogiri, tp_after_meld, tp_melds, tp_discards_last, tp_discards_second_last, out_tiles = OpenHandCostProtocol.process_discards(
                 row['third_player_discards'],
                 row['third_player_melds'],
                 out_tiles
@@ -54,49 +55,79 @@ class OpenHandCostProtocol:
 
             input_data = list(itertools.chain(
                 discards,
-                tsumogiri,
-                after_meld,
                 melds,
-                discards_last,
-                discards_second_last,
                 out_tiles_0,
                 out_tiles_1,
                 out_tiles_2,
                 out_tiles_3,
             ))
 
-            if len(input_data) != BetaoriClosedHandProtocol.input_size:
+            if len(input_data) != OpenHandCostProtocol.input_size:
                 print('Internal error: len(input_data) should be {}, but is {}'.format(
-                    BetaoriClosedHandProtocol.input_size,
+                    OpenHandCostProtocol.input_size,
                     len(input_data)
                 ))
                 exit(1)
 
             self.input_data.append(input_data)
 
-            # Output reference - actual waits
-            # For tiles that are not 100% safe and not actual waits,
-            # we give value 0
-            waiting = [0 for x in range(BetaoriClosedHandProtocol.tiles_num // 4)]
+            tenpai_discards = OpenHandCostProtocol.prepare_discards(row['tenpai_player_discards'])
+            tenpai_melds = OpenHandCostProtocol.prepare_melds(row['tenpai_player_melds'])
 
-            tenpai_discards = BetaoriClosedHandProtocol.prepare_discards(row['tenpai_player_discards'])
-            tenpai_melds = BetaoriClosedHandProtocol.prepare_melds(row['tenpai_player_melds'])
+            hand_cost_scale = [0 for _ in range(self.output_size)]
 
-            for x in tenpai_discards:
-                # Here we give hint to network during training: tiles from discard
-                # give output "-1":
-                waiting[x[0] // 4] = -1
+            hand_cost_mapping = {
+                '1-30': 0,
+                '1-40': 0,
+                '1-50': 0,
+                '2-25': 1,
+                '2-30': 1,
+                '2-40': 1,
+                '2-50': 1,
+                '3-25': 2,
+                '3-30': 2,
+                '3-40': 2,
+                '3-50': 2,
+                '3-60': 3,
+                '4-25': 3,
+                '4-30': 3,
+                '4-40': 4,
+                '4-50': 4,
+                '5': 4,
+                '6': 5,
+                '7': 5,
+                '8': 6,
+                '9': 6,
+                '10': 6,
+                '11': 7,
+                '12': 7,
+                '13': 8,
+            }
 
             waiting_temp = [x for x in row['tenpai_player_waiting'].split(',')]
             for x in waiting_temp:
                 temp = x.split(';')
-                tile = int(temp[0])
-                # if cost == 0 it mean that player can't win on this waiting
-                cost = int(temp[1])
-                if cost > 0:
-                    waiting[tile // 4] = 1
 
-            self.output_data.append(waiting)
+                if temp[2] == 'None':
+                    continue
+
+                han = int(temp[2])
+                fu = int(temp[3])
+
+                if fu >= 60:
+                    han += 1
+
+                if han >= 5:
+                    key = str(han)
+                elif han >= 13:
+                    han = 13
+                    key = str(han)
+                else:
+                    key = '{}-{}'.format(han, fu)
+
+                hand_cost_scale[hand_cost_mapping.get(key)] = 1
+
+            self.output_data.append(hand_cost_scale)
 
             # Use it only for visual debugging!
             tenpai_player_hand = [int(x) for x in row['tenpai_player_hand'].split(',')]
@@ -121,14 +152,14 @@ class OpenHandCostProtocol:
         # Fifth row - how long ago tile was discarded, 1 for first discard,
         #             and decreases by 0.025 for each following discard
         # NB: this should correspond to input_size variable!
-        discards = [0 for x in range(BetaoriClosedHandProtocol.tiles_unique)]
-        tsumogiri = [1 for x in range(BetaoriClosedHandProtocol.tiles_unique)]
-        after_meld = [0 for x in range(BetaoriClosedHandProtocol.tiles_unique)]
-        melds = [0 for x in range(BetaoriClosedHandProtocol.tiles_unique)]
-        discards_last = [0 for x in range(BetaoriClosedHandProtocol.tiles_unique)]
-        discards_second_last = [0 for x in range(BetaoriClosedHandProtocol.tiles_unique)]
+        discards = [0 for x in range(OpenHandCostProtocol.tiles_unique)]
+        tsumogiri = [1 for x in range(OpenHandCostProtocol.tiles_unique)]
+        after_meld = [0 for x in range(OpenHandCostProtocol.tiles_unique)]
+        melds = [0 for x in range(OpenHandCostProtocol.tiles_unique)]
+        discards_last = [0 for x in range(OpenHandCostProtocol.tiles_unique)]
+        discards_second_last = [0 for x in range(OpenHandCostProtocol.tiles_unique)]
 
-        discards_temp = BetaoriClosedHandProtocol.prepare_discards(discards_data)
+        discards_temp = OpenHandCostProtocol.prepare_discards(discards_data)
         for x in discards_temp:
             tile = x[0] // 4
             is_tsumogiri = x[1]
@@ -163,7 +194,7 @@ class OpenHandCostProtocol:
                 else:
                     continue
 
-        melds_temp = BetaoriClosedHandProtocol.prepare_melds(melds_data)
+        melds_temp = OpenHandCostProtocol.prepare_melds(melds_data)
         for x in melds_temp:
             tiles = x[0]
             for tile in tiles:

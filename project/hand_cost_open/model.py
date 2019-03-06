@@ -19,6 +19,7 @@ class OpenHandCostModel(Model):
     batch_size = 256
 
     input_size = OpenHandCostProtocol.input_size
+    output_size = OpenHandCostProtocol.output_size
 
     def calculate_predictions(self, model, test_input, test_verification, epoch):
         predictions = model.predict(test_input, verbose=1)

@@ -6,7 +6,9 @@ from betaori_closed_hand.exporter import BetaoriClosedHandCSVExporter
 class BetaoriClosedHandProtocol:
     tiles_unique = 34
     tiles_num = tiles_unique * 4
+
     input_size = tiles_unique * 10
+    output_size = tiles_unique
 
     exporter = BetaoriClosedHandCSVExporter
 

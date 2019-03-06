@@ -19,3 +19,4 @@ class BetaoriOpenHandModel(BetaoriClosedHandModel):
     batch_size = 256
 
     input_size = BetaoriOpenHandProtocol.input_size
+    output_size = BetaoriOpenHandProtocol.output_size

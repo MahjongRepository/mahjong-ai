@@ -23,6 +23,7 @@ class BetaoriClosedHandModel(Model):
     batch_size = 256
 
     input_size = BetaoriClosedHandProtocol.input_size
+    output_size = BetaoriClosedHandProtocol.output_size
 
     def calculate_predictions(self, model, test_input, test_verification, epoch):
         predictions = model.predict(test_input, verbose=1)
