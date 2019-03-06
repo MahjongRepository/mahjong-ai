@@ -25,7 +25,7 @@ class BetaoriClosedHandModel(Model):
     input_size = BetaoriClosedHandProtocol.input_size
     output_size = BetaoriClosedHandProtocol.output_size
 
-    def calculate_predictions(self, model, test_input, test_verification, epoch):
+    def calculate_predictions(self, model, test_input, test_output, test_verification, epoch):
         predictions = model.predict(test_input, verbose=1)
         logger.info('predictions shape = {}'.format(predictions.shape))
 
@@ -162,23 +162,6 @@ class BetaoriClosedHandModel(Model):
                     'avg_min_wait_pos_in_hand': avg_min_wait_position_in_hand
                 }
             )
-
-    def tiles_34_to_sting_unsorted(self, tiles):
-        string = ''
-        for tile in tiles:
-            if tile < 9:
-                string += str(tile + 1) + 'm'
-            elif 9 <= tile < 18:
-                string += str(tile - 9 + 1) + 'p'
-            elif 18 <= tile < 27:
-                string += str(tile - 18 + 1) + 's'
-            else:
-                string += str(tile - 27 + 1) + 'z'
-
-        return string
-
-    def tiles_136_to_sting_unsorted(self, tiles):
-        return self.tiles_34_to_sting_unsorted([x // 4 for x in tiles])
 
 
 class LoggingCallback(Callback):

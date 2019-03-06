@@ -145,13 +145,11 @@ def main():
             f.create_dataset(
                 'input_data',
                 data=protocol.input_data,
-                maxshape=(None, protocol.input_size),
                 dtype='float32'
             )
             f.create_dataset(
                 'output_data',
                 data=protocol.output_data,
-                maxshape=(None, protocol.tiles_unique),
                 dtype='float32'
             )
 

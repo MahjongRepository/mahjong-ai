@@ -98,6 +98,7 @@ class Model:
                 self.calculate_predictions(
                     model,
                     test_input,
+                    test_output,
                     test_verification,
                     n_epoch
                 )
@@ -112,7 +113,7 @@ class Model:
         results = model.evaluate(test_input, test_output, verbose=1)
         logger.info('results [loss, acc] = {}'.format(results))
 
-        self.calculate_predictions(model, test_input, test_verification, None)
+        self.calculate_predictions(model, test_input, test_output, test_verification, None)
 
         if self.graphs_data:
             best_result = sorted(self.graphs_data, key=lambda x: x['avg_min_wait_pos'], reverse=True)[0]
@@ -132,5 +133,22 @@ class Model:
 
         return model
 
-    def calculate_predictions(self, model, test_input, test_verification, epoch):
+    def calculate_predictions(self, model, test_input, test_output, test_verification, epoch):
         pass
+
+    def tiles_34_to_sting_unsorted(self, tiles):
+        string = ''
+        for tile in tiles:
+            if tile < 9:
+                string += str(tile + 1) + 'm'
+            elif 9 <= tile < 18:
+                string += str(tile - 9 + 1) + 'p'
+            elif 18 <= tile < 27:
+                string += str(tile - 18 + 1) + 's'
+            else:
+                string += str(tile - 27 + 1) + 'z'
+
+        return string
+
+    def tiles_136_to_sting_unsorted(self, tiles):
+        return self.tiles_34_to_sting_unsorted([x // 4 for x in tiles])
