@@ -58,7 +58,7 @@ def main():
         '--percentage',
         type='int',
         help='test data percentage',
-        default=5
+        default=20
     )
 
     opts, _ = parser.parse_args()
@@ -106,27 +106,20 @@ def main():
     os.mkdir(data_dir)
 
     total_count = line_count(data_path)
-
-    test_total_count = line_count(test_path)
     test_count = int((total_count / 100.0) * test_data_percentage)
-    test_rows = np.random.choice(range(1, test_total_count), test_count, replace=False)
-    skip_test_rows = list(set(range(0, test_total_count)) - set(test_rows))
 
     logger.info('Train data size: {}'.format(total_count))
-    logger.info('Test data size: {}'.format(len(test_rows)))
-
-    # pandas didn't add correct headers to csv by default
-    # so we had to do it manually
-    header = CSVExporter.header()
+    logger.info('Test data size: {}'.format(test_count))
 
     # our test data had to be in separate file
-    test_data = pd.read_csv(test_path, skiprows=skip_test_rows, names=header)
+    header = CSVExporter.header()
+    test_data = pd.read_csv(test_path, names=header, nrows=test_count)
     test_data = test_data.replace([None, np.nan, 'None', 'NaN', 'nan'], '')
 
     protocol.parse_new_data(test_data.iterrows())
 
+    logger.info('Saving test.p file...')
     protocol_test_path = os.path.join(data_dir, 'test.p')
-    logger.info('Saving test.p...')
     pickle.dump(protocol, open(protocol_test_path, 'wb'))
 
     logger.info('')

@@ -67,6 +67,8 @@ def main():
 
     set_up_logging('parser')
 
+    logger.info('Data file: {}'.format(db_path))
+    logger.info('{} protocol will be used'.format(output_format))
     logger.info('Loading and decompressing logs content...')
     logs = load_logs(db_path, limit)
 

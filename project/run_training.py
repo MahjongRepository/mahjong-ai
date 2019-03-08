@@ -76,7 +76,7 @@ def main():
     protocol = protocols.get(protocol_string)
 
     if not protocol:
-        parser.error('Possible values for protocol are: {}.'.format(','.join(protocols.keys())))
+        parser.error('Possible values for protocol are: {}.'.format(', '.join(protocols.keys())))
 
     set_up_logging('training_{}'.format(protocol_string))
 
