@@ -1,5 +1,7 @@
 import itertools
 
+from mahjong.utils import plus_dora, is_aka_dora
+
 from base.protocol import Protocol
 
 
@@ -7,7 +9,10 @@ class OpenHandCostProtocol(Protocol):
     tiles_unique = 34
     tiles_num = tiles_unique * 4
 
-    input_size = tiles_unique * 6
+    max_dora_in_hand = 8
+    max_dora_on_the_table = 16 + 3
+
+    input_size = tiles_unique * 6 + max_dora_in_hand + max_dora_on_the_table
     output_size = 9
 
     hand_cost_mapping = {
@@ -41,7 +46,7 @@ class OpenHandCostProtocol(Protocol):
     def parse_new_data(self, raw_data):
         for index, row in raw_data:
             # total number of out tiles (all discards, all melds, player hand, dora indicators)
-            out_tiles = [0 for x in range(self.tiles_unique)]
+            out_tiles = [0 for _ in range(self.tiles_unique)]
             defending_hand = []
 
             discards, tsumogiri, after_meld, melds, discards_last, discards_second_last, out_tiles = self.process_discards(
@@ -70,12 +75,69 @@ class OpenHandCostProtocol(Protocol):
             for x in dora_indicators:
                 out_tiles[x // 4] += 1
 
+            number_of_dora_in_player_open_melds = 0
+            player_melds = self.prepare_melds(row['tenpai_player_melds'])
+            for meld in player_melds:
+                for tile in meld[0]:
+                    number_of_dora_in_player_open_melds += plus_dora(tile, dora_indicators)
+                    if is_aka_dora(tile, True):
+                        number_of_dora_in_player_open_melds += 1
+
+            if number_of_dora_in_player_open_melds > self.max_dora_in_hand:
+                number_of_dora_in_player_open_melds = self.max_dora_in_hand
+
+            dora_in_player_open_melds = [0 for _ in range(self.max_dora_in_hand)]
+            for i in range(self.max_dora_in_hand):
+                if i + 1 <= number_of_dora_in_player_open_melds:
+                    dora_in_player_open_melds[i] = 1
+
+            visible_dora = 0
+            visible_tiles = []
+            discard_names = [
+                'player_discards',
+                'tenpai_player_discards',
+                'second_player_discards',
+                'third_player_discards',
+            ]
+
+            for discard in discard_names:
+                discards_temp = self.prepare_discards(getattr(row, discard))
+                for x in discards_temp:
+                    visible_tiles.append(x[0])
+
+            meld_names = [
+                'player_melds',
+                'second_player_melds',
+                'third_player_melds',
+            ]
+
+            for meld_name in meld_names:
+                melds_temp = self.prepare_melds(getattr(row, meld_name))
+                for x in melds_temp:
+                    visible_tiles.extend(x[0])
+
+            visible_tiles.extend(dora_indicators)
+
+            for visible_tile in visible_tiles:
+                visible_dora += plus_dora(visible_tile, dora_indicators)
+                if is_aka_dora(visible_tile, True):
+                    visible_dora += 1
+
+            not_visible_dora = self.max_dora_on_the_table - visible_dora
+
+            not_visible_dora_on_the_table = [0 for _ in range(self.max_dora_on_the_table)]
+            for i in range(self.max_dora_on_the_table):
+                if i + 1 <= not_visible_dora:
+                    not_visible_dora_on_the_table[i] = 1
+
             out_tiles_0 = [1 if x >= 1 else 0 for x in out_tiles]
             out_tiles_1 = [1 if x >= 2 else 0 for x in out_tiles]
             out_tiles_2 = [1 if x >= 3 else 0 for x in out_tiles]
             out_tiles_3 = [1 if x == 4 else 0 for x in out_tiles]
 
             input_data = list(itertools.chain(
+                not_visible_dora_on_the_table,
+                dora_in_player_open_melds,
                 discards,
                 melds,
                 out_tiles_0,
