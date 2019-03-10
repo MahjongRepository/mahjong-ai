@@ -15,6 +15,7 @@ from base.csv_exporter import CSVExporter
 from base.utils.logger import set_up_logging
 from betaori_closed_hand.protocol import BetaoriClosedHandProtocol
 from betaori_open_hand.protocol import BetaoriOpenHandProtocol
+from hand_cost_closed.protocol import ClosedHandCostProtocol
 from hand_cost_open.protocol import OpenHandCostProtocol
 
 logger = logging.getLogger('logs')
@@ -79,13 +80,14 @@ def main():
     protocols = {
         'betaori_closed_hand': BetaoriClosedHandProtocol,
         'betaori_open_hand': BetaoriOpenHandProtocol,
-        'hand_cost_open': OpenHandCostProtocol
+        'hand_cost_open': OpenHandCostProtocol,
+        'hand_cost_closed': ClosedHandCostProtocol,
     }
 
     protocol = protocols.get(protocol_string)
 
     if not protocol:
-        parser.error('Possible values for protocol are: {}'.format(','.join(protocols.keys())))
+        parser.error('Possible values for protocol are: {}'.format(', '.join(protocols.keys())))
 
     protocol = protocol()
 
