@@ -2,7 +2,6 @@ import json
 import logging
 
 import numpy as np
-from keras.callbacks import Callback
 from mahjong.tile import TilesConverter
 
 from base.model import Model
@@ -174,13 +173,3 @@ class BetaoriClosedHandModel(Model):
                     'avg_genbutsu_error': avg_genbutsu_error,
                 }
             )
-
-
-class LoggingCallback(Callback):
-
-    def on_epoch_end(self, epoch, logs=None):
-        if not logs:
-            return
-
-        msg = '{}'.format(', '.join('%s: %f' % (k, v) for k, v in logs.items()))
-        logger.info(msg)

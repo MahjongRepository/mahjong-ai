@@ -7,6 +7,7 @@ from keras import layers
 from keras import models
 from keras.models import load_model
 from keras.utils import HDF5Matrix
+from keras.callbacks import Callback
 
 from base.results_visualization import show_graphs
 
@@ -93,7 +94,8 @@ class Model:
                         shuffle='batch',
                         epochs=1,
                         batch_size=self.batch_size,
-                        validation_data=(test_input, test_output)
+                        validation_data=(test_input, test_output),
+                        callbacks=[LoggingCallback()]
                     )
 
                 logger.info('Predictions after epoch #{}'.format(n_epoch))
@@ -155,3 +157,10 @@ class Model:
 
     def tiles_136_to_sting_unsorted(self, tiles):
         return self.tiles_34_to_sting_unsorted([x // 4 for x in tiles])
+
+
+class LoggingCallback(Callback):
+
+    def on_epoch_end(self, epoch, logs=None):
+        msg = '{}'.format(', '.join('%s: %f' % (k, v) for k, v in logs.items()))
+        logger.info(msg)
