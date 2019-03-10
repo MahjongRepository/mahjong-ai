@@ -1,6 +1,7 @@
 import logging
 import os
 import pickle
+import shutil
 
 import numpy as np
 from keras import layers
@@ -15,7 +16,7 @@ logger = logging.getLogger('logs')
 
 
 class Model:
-    model_name = None
+    model_directory = None
 
     model_attributes = {}
 
@@ -26,11 +27,11 @@ class Model:
     input_size = None
     output_size = None
 
-    def __init__(self, root_dir, data_path, print_predictions, epochs, need_visualize):
-        self.model_path = os.path.join(root_dir, self.model_name)
+    def __init__(self, input_directory_name, data_path, print_predictions, epochs, need_visualize, load_epoch):
         self.data_path = data_path
         self.print_predictions = print_predictions
         self.need_visualize = need_visualize
+        self.load_epoch = load_epoch
 
         self.epochs = epochs
 
@@ -39,9 +40,12 @@ class Model:
             'second': [],
         }
 
-    def remove_model(self):
-        if os.path.exists(self.model_path):
-            os.remove(self.model_path)
+        root_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', '..', 'models')
+        if not os.path.exists(root_dir):
+            os.mkdir(root_dir)
+
+        self.model_directory = os.path.join(root_dir, input_directory_name)
+        self.remove_model()
 
     def run(self):
         logger.info('Epochs: {}'.format(self.epochs))
@@ -60,7 +64,9 @@ class Model:
         test_verification = test_data.verification_data
         logger.info('Test data size = {}'.format(test_samples))
 
-        if not os.path.exists(self.model_path):
+        if self.load_epoch == 0:
+            os.mkdir(self.model_directory)
+
             data_files_temp = os.listdir(self.data_path)
             data_files = []
             for f in data_files_temp:
@@ -109,10 +115,16 @@ class Model:
 
                 # We save model after each epoch
                 logger.info('Saving model, please don\'t interrupt...')
-                model.save(self.model_path)
+                model_path = os.path.join(self.model_directory, '{}_model.h5'.format(n_epoch))
+                model.save(model_path)
                 logger.info('Model saved')
         else:
-            model = load_model(self.model_path)
+            model_files = os.listdir(self.model_directory)
+            model_file = None
+            for f in model_files:
+                if f.startswith('{}_'.format(self.load_epoch)):
+                    model_file = f
+            model = load_model(os.path.join(self.model_directory, model_file))
 
         results = model.evaluate(test_input, test_output, verbose=1)
         logger.info('results [loss, acc] = {}'.format(results))
@@ -124,6 +136,11 @@ class Model:
 
         if self.need_visualize and self.graphs_data:
             show_graphs(self.graphs_data)
+
+    def remove_model(self):
+        if os.path.exists(self.model_directory) and self.load_epoch == 0:
+            logger.info('Model directory already exists. It was deleted.')
+            shutil.rmtree(self.model_directory)
 
     def create_and_compile_model(self):
         model = models.Sequential()

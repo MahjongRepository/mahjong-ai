@@ -13,8 +13,6 @@ logger = logging.getLogger('logs')
 
 
 class OpenHandCostModel(Model):
-    model_name = 'hand_cost_open.h5'
-
     model_attributes = {
         'optimizer': 'adam',
         'loss': 'sparse_categorical_crossentropy',

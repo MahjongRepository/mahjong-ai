@@ -30,10 +30,10 @@ def main():
     )
 
     parser.add_option(
-        '--rebuild',
-        action='store_true',
-        help='Do we need to rebuild model or not',
-        default=False
+        '--load',
+        type='int',
+        help='What epoch to load',
+        default=0
     )
 
     parser.add_option(
@@ -51,7 +51,7 @@ def main():
 
     opts, _ = parser.parse_args()
 
-    rebuild = opts.rebuild
+    load_epoch = opts.load
     epochs = opts.epochs
     protocol_string = opts.protocol
     visualize = opts.visualize
@@ -82,10 +82,14 @@ def main():
 
     set_up_logging('training_{}'.format(protocol_string))
 
-    model = protocol(root_dir, data_dir, print_predictions, epochs, visualize)
-
-    if rebuild:
-        model.remove_model()
+    model = protocol(
+        input_directory_name,
+        data_dir,
+        print_predictions,
+        epochs,
+        visualize,
+        load_epoch
+    )
 
     model.run()
 
