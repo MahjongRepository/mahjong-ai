@@ -1,5 +1,6 @@
 import itertools
 
+from mahjong.constants import EAST, SOUTH, WEST, NORTH
 from mahjong.utils import plus_dora, is_aka_dora
 
 from base.protocol import Protocol
@@ -11,8 +12,9 @@ class OpenHandCostProtocol(Protocol):
 
     max_dora_in_hand = 8
     max_dora_on_the_table = 16 + 3
+    winds_input_size = 8
 
-    input_size = tiles_unique * 6 + max_dora_in_hand + max_dora_on_the_table
+    input_size = tiles_unique * 6 + max_dora_in_hand + max_dora_on_the_table + winds_input_size
     output_size = 9
 
     hand_cost_mapping = {
@@ -130,12 +132,35 @@ class OpenHandCostProtocol(Protocol):
                 if i + 1 <= not_visible_dora:
                     not_visible_dora_on_the_table[i] = 1
 
+            winds_input = [0 for _ in range(self.winds_input_size)]
+            round_wind = int(row.get('round_wind'))
+            player_wind = int(row.get('tenpai_player_wind'))
+
+            if round_wind == EAST:
+                winds_input[0] = 1
+            elif round_wind == SOUTH:
+                winds_input[1] = 1
+            elif round_wind == WEST:
+                winds_input[2] = 1
+            elif round_wind == NORTH:
+                winds_input[3] = 1
+
+            if player_wind == EAST:
+                winds_input[4] = 1
+            elif player_wind == SOUTH:
+                winds_input[5] = 1
+            elif player_wind == WEST:
+                winds_input[6] = 1
+            elif player_wind == NORTH:
+                winds_input[7] = 1
+
             out_tiles_0 = [1 if x >= 1 else 0 for x in out_tiles]
             out_tiles_1 = [1 if x >= 2 else 0 for x in out_tiles]
             out_tiles_2 = [1 if x >= 3 else 0 for x in out_tiles]
             out_tiles_3 = [1 if x == 4 else 0 for x in out_tiles]
 
             input_data = list(itertools.chain(
+                winds_input,
                 not_visible_dora_on_the_table,
                 dora_in_player_open_melds,
                 discards,
