@@ -69,6 +69,9 @@ class OpenHandCostProtocol(Protocol):
                 out_tiles
             )
 
+            for x in self.prepare_discards(row['player_discards']):
+                out_tiles[x[0] // 4] += 1
+
             for x in [int(x) for x in row['player_hand'].split(',')]:
                 defending_hand.append(x // 4)
                 out_tiles[x // 4] += 1
