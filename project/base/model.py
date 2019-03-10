@@ -119,7 +119,7 @@ class Model:
 
         self.calculate_predictions(model, test_input, test_output, test_verification, None)
 
-        if self.graphs_data:
+        if self.graphs_data.get('first'):
             self.print_best_result()
 
         if self.need_visualize and self.graphs_data:
