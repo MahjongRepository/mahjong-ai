@@ -227,7 +227,7 @@ class OpenHandCostProtocol(Protocol):
 
     @staticmethod
     def create_hand_cost_key(han, fu):
-        if fu >= 60:
+        if fu >= 60 and han < 5:
             han += 1
             fu = 30
 
