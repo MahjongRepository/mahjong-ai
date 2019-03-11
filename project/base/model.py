@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import pickle
@@ -38,6 +39,7 @@ class Model:
         self.graphs_data = {
             'first': [],
             'second': [],
+            'third': [],
         }
 
         root_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', '..', 'models')
@@ -101,7 +103,7 @@ class Model:
                         epochs=1,
                         batch_size=self.batch_size,
                         validation_data=(test_input, test_output),
-                        callbacks=[LoggingCallback()]
+                        callbacks=[LoggingCallback(self.graphs_data)]
                     )
 
                 logger.info('Predictions after epoch #{}'.format(n_epoch))
@@ -134,8 +136,10 @@ class Model:
         if self.graphs_data.get('first'):
             self.print_best_result()
 
-        if self.need_visualize and self.graphs_data:
-            show_graphs(self.graphs_data)
+            logger.info(json.dumps(self.graphs_data))
+
+            if self.need_visualize:
+                show_graphs(self.graphs_data)
 
     def remove_model(self):
         if os.path.exists(self.model_directory) and self.load_epoch == 0:
@@ -178,6 +182,14 @@ class Model:
 
 class LoggingCallback(Callback):
 
+    def __init__(self, graphs_data):
+        super(LoggingCallback, self).__init__()
+        self.graphs_data = graphs_data
+
     def on_epoch_end(self, epoch, logs=None):
         msg = '{}'.format(', '.join('%s: %f' % (k, v) for k, v in logs.items()))
         logger.info(msg)
+
+        n_epoch = len(self.graphs_data['third']) + 1
+        logs['epoch'] = n_epoch
+        self.graphs_data['third'].append(logs)

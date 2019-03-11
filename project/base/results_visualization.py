@@ -6,7 +6,7 @@ def show_graphs(data):
 
     fig = plt.figure(figsize=(10, 10))
     for i, value in enumerate(data.values()):
-        fig.add_subplot(2, 1, i + 1)
+        fig.add_subplot(3, 1, i + 1)
 
         x_values = [x[epoch_key] for x in value]
 

@@ -28,6 +28,15 @@ class BetaoriClosedHandModel(Model):
         logger.info('Best result')
         logger.info(json.dumps(best_result, indent=2))
 
+        second = [x for x in self.graphs_data['second'] if x['epoch'] == best_result['epoch']]
+        third = [x for x in self.graphs_data['third'] if x['epoch'] == best_result['epoch']]
+
+        logger.info('Second value')
+        logger.info(json.dumps(second, indent=2))
+
+        logger.info('Model attrs')
+        logger.info(json.dumps(third, indent=2))
+
     def calculate_predictions(self, model, test_input, test_output, test_verification, epoch):
         predictions = model.predict(test_input, verbose=1)
         logger.info('predictions shape = {}'.format(predictions.shape))
