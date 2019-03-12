@@ -11,6 +11,10 @@ class Protocol:
         self.verification_data = []
 
     def prepare_discards(self, data):
+        # sometimes players don't have discard when other player already in tenpai
+        if not data:
+            return []
+
         discards_temp = [x for x in data.split(',')]
         result = []
         for x in discards_temp:
