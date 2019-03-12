@@ -308,7 +308,7 @@ class LogParser:
 
         meld = ParserMeld()
         meld.who = who
-        meld.from_who = data & 0x3
+        meld.from_who = ((data & 0x3) + meld.who) % 4
 
         if data & 0x4:
             self.parse_chi(data, meld)
