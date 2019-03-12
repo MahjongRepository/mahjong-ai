@@ -1,7 +1,7 @@
 from base.utils.utils import encode_discards, encode_melds
 
 
-class BetaoriClosedHandCSVExporter:
+class CSVExporter:
 
     @staticmethod
     def header():
@@ -41,9 +41,11 @@ class BetaoriClosedHandCSVExporter:
 
         tenpai_player_waiting = []
         for x in tenpai_player.waiting:
-            tenpai_player_waiting.append('{};{}'.format(
+            tenpai_player_waiting.append('{};{};{};{}'.format(
                 x['tile'],
-                x['cost'] or 0,
+                x['cost'],
+                x['han'],
+                x['fu'],
             ))
 
         assert len(tenpai_player_waiting) > 0
@@ -68,4 +70,3 @@ class BetaoriClosedHandCSVExporter:
         ]
 
         return data
-

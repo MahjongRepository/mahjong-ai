@@ -7,8 +7,6 @@ logger = logging.getLogger('logs')
 
 
 class BetaoriOpenHandModel(BetaoriClosedHandModel):
-    model_name = 'betaori_open_hand.h5'
-
     model_attributes = {
         'optimizer': 'sgd',
         'loss': 'mean_squared_error'
@@ -19,3 +17,4 @@ class BetaoriOpenHandModel(BetaoriClosedHandModel):
     batch_size = 256
 
     input_size = BetaoriOpenHandProtocol.input_size
+    output_size = BetaoriOpenHandProtocol.output_size

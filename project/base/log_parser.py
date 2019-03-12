@@ -8,6 +8,7 @@ from mahjong.hand_calculating.hand_config import HandConfig
 from mahjong.shanten import Shanten
 from mahjong.tile import TilesConverter
 
+from base.csv_exporter import CSVExporter
 from base.primitives.discard import Discard
 from base.primitives.meld import ParserMeld
 from base.primitives.table import Table
@@ -24,6 +25,8 @@ class LogParser:
         self.finished_hand = HandCalculator()
 
         self.data_to_save = []
+
+        self.csv_exporter = CSVExporter()
 
     def on_player_draw(self, player, table):
         pass

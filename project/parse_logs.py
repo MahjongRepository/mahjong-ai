@@ -51,8 +51,8 @@ def main():
         parser.error('Path to db is not given.')
 
     allowed_outputs = {
-        'betaori_closed_hand': BetaoriClosedHandParser(),
-        'betaori_open_hand': BetaoriOpenHandParser(),
+        'closed_hand': BetaoriClosedHandParser(),
+        'open_hand': BetaoriOpenHandParser(),
     }
 
     if not allowed_outputs.get(output_format):
@@ -65,6 +65,8 @@ def main():
 
     set_up_logging('parser')
 
+    logger.info('Data file: {}'.format(db_path))
+    logger.info('{} protocol will be used'.format(output_format))
     logger.info('Loading and decompressing logs content...')
     logs = load_logs(db_path, limit)
 

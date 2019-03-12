@@ -1,15 +1,9 @@
 import random
 
 from base.log_parser import LogParser
-from betaori_closed_hand.exporter import BetaoriClosedHandCSVExporter
 
 
 class BetaoriClosedHandParser(LogParser):
-
-    def __init__(self):
-        super(BetaoriClosedHandParser, self).__init__()
-
-        self.csv_exporter = BetaoriClosedHandCSVExporter()
 
     def export_condition(self, player):
         # we want to collect only examples with closed hands

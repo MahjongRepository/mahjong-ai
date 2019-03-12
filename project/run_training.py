@@ -4,6 +4,8 @@ from optparse import OptionParser
 from base.utils.logger import set_up_logging
 from betaori_closed_hand.model import BetaoriClosedHandModel
 from betaori_open_hand.model import BetaoriOpenHandModel
+from hand_cost_closed.model import ClosedHandCostModel
+from hand_cost_open.model import OpenHandCostModel
 
 
 def main():
@@ -28,10 +30,10 @@ def main():
     )
 
     parser.add_option(
-        '--rebuild',
-        action='store_true',
-        help='Do we need to rebuild model or not',
-        default=False
+        '--load',
+        type='int',
+        help='What epoch to load',
+        default=0
     )
 
     parser.add_option(
@@ -49,7 +51,7 @@ def main():
 
     opts, _ = parser.parse_args()
 
-    rebuild = opts.rebuild
+    load_epoch = opts.load
     epochs = opts.epochs
     protocol_string = opts.protocol
     visualize = opts.visualize
@@ -69,19 +71,25 @@ def main():
     protocols = {
         'betaori_closed_hand': BetaoriClosedHandModel,
         'betaori_open_hand': BetaoriOpenHandModel,
+        'hand_cost_open': OpenHandCostModel,
+        'hand_cost_closed': ClosedHandCostModel,
     }
 
     protocol = protocols.get(protocol_string)
 
     if not protocol:
-        parser.error('Possible values for protocol are: {}.'.format(','.join(protocols.keys())))
+        parser.error('Possible values for protocol are: {}.'.format(', '.join(protocols.keys())))
 
     set_up_logging('training_{}'.format(protocol_string))
 
-    model = protocol(root_dir, data_dir, print_predictions, epochs, visualize)
-
-    if rebuild:
-        model.remove_model()
+    model = protocol(
+        input_directory_name,
+        data_dir,
+        print_predictions,
+        epochs,
+        visualize,
+        load_epoch
+    )
 
     model.run()
 

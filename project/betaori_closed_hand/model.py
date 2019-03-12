@@ -1,7 +1,7 @@
+import json
 import logging
 
 import numpy as np
-from keras.callbacks import Callback
 from mahjong.tile import TilesConverter
 
 from base.model import Model
@@ -11,8 +11,6 @@ logger = logging.getLogger('logs')
 
 
 class BetaoriClosedHandModel(Model):
-    model_name = 'betaori_closed_hand.h5'
-
     model_attributes = {
         'optimizer': 'sgd',
         'loss': 'mean_squared_error'
@@ -23,8 +21,23 @@ class BetaoriClosedHandModel(Model):
     batch_size = 256
 
     input_size = BetaoriClosedHandProtocol.input_size
+    output_size = BetaoriClosedHandProtocol.output_size
 
-    def calculate_predictions(self, model, test_input, test_verification, epoch):
+    def print_best_result(self):
+        best_result = sorted(self.graphs_data['first'], key=lambda x: x['avg_min_wait_pos'], reverse=True)[0]
+        logger.info('Best result')
+        logger.info(json.dumps(best_result, indent=2))
+
+        second = [x for x in self.graphs_data['second'] if x['epoch'] == best_result['epoch']]
+        third = [x for x in self.graphs_data['third'] if x['epoch'] == best_result['epoch']]
+
+        logger.info('Second value')
+        logger.info(json.dumps(second, indent=2))
+
+        logger.info('Model attrs')
+        logger.info(json.dumps(third, indent=2))
+
+    def calculate_predictions(self, model, test_input, test_output, test_verification, epoch):
         predictions = model.predict(test_input, verbose=1)
         logger.info('predictions shape = {}'.format(predictions.shape))
 
@@ -151,40 +164,19 @@ class BetaoriClosedHandModel(Model):
         logger.info('avg_min_wait_pos_in_hand (jap metrics) = {}'.format(avg_min_wait_position_in_hand))
 
         if epoch:
-            self.graphs_data.append(
+            self.graphs_data['first'].append(
                 {
                     'epoch': epoch,
                     'avg_min_wait_pos': avg_min_wait_position,
                     'avg_max_wait_pos': avg_max_wait_position,
                     'avg_avg_wait_pos': avg_avg_wait_position,
-                    'avg_genbutsu_error': avg_genbutsu_error,
-                    'avg_min_wait_pos_in_hand': avg_min_wait_position_in_hand
+                    'jap_metric': avg_min_wait_position_in_hand
                 }
             )
 
-    def tiles_34_to_sting_unsorted(self, tiles):
-        string = ''
-        for tile in tiles:
-            if tile < 9:
-                string += str(tile + 1) + 'm'
-            elif 9 <= tile < 18:
-                string += str(tile - 9 + 1) + 'p'
-            elif 18 <= tile < 27:
-                string += str(tile - 18 + 1) + 's'
-            else:
-                string += str(tile - 27 + 1) + 'z'
-
-        return string
-
-    def tiles_136_to_sting_unsorted(self, tiles):
-        return self.tiles_34_to_sting_unsorted([x // 4 for x in tiles])
-
-
-class LoggingCallback(Callback):
-
-    def on_epoch_end(self, epoch, logs=None):
-        if not logs:
-            return
-
-        msg = '{}'.format(', '.join('%s: %f' % (k, v) for k, v in logs.items()))
-        logger.info(msg)
+            self.graphs_data['second'].append(
+                {
+                    'epoch': epoch,
+                    'avg_genbutsu_error': avg_genbutsu_error,
+                }
+            )
