@@ -57,8 +57,8 @@ class BetaoriClosedHandModel(Model):
 
             tempai_hand = test_verification[i][0]
 
-            discards = [x[0] for x in test_verification[i][1]]
-            melds = [x[0] for x in test_verification[i][2]]
+            discards = [x['tile'] for x in test_verification[i][1]]
+            melds = [x['tiles'] for x in test_verification[i][2]]
 
             waits = []
             waits_temp = test_verification[i][3]

@@ -52,8 +52,8 @@ class OpenHandCostModel(Model):
 
         for i, prediction in enumerate(predictions):
             tempai_hand = test_verification[i][0]
-            discards = [x[0] for x in test_verification[i][1]]
-            melds = [x[0] for x in test_verification[i][2]]
+            discards = [x['tile'] for x in test_verification[i][1]]
+            melds = [x['tiles'] for x in test_verification[i][2]]
             dora_indicators = test_verification[i][5]
             tile, han, fu = test_verification[i][3]
 

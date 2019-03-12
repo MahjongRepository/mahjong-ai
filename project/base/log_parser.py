@@ -13,7 +13,7 @@ from base.primitives.discard import Discard
 from base.primitives.meld import ParserMeld
 from base.primitives.table import Table
 
-logger = logging.Logger('catch_all')
+logger = logging.getLogger('logs')
 
 
 class LogParser:
@@ -126,7 +126,7 @@ class LogParser:
                         player_seat = self.get_player_seat(tag)
                         player = table.get_player(player_seat)
 
-                        is_tsumogiri = tile == player.tiles[-1]
+                        is_tsumogiri = tile == player.last_drawn_tile
                         after_meld = player_seat == who_called_meld_on_this_step
 
                         discard = Discard(tile, is_tsumogiri, after_meld, False)
@@ -158,9 +158,9 @@ class LogParser:
 
                         player.add_meld(meld)
 
-                        # if it was not kan/chankan let's draw a tile
+                        # if it was not kan/chankan let's add it to the hand
                         if meld.type != ParserMeld.CHANKAN and meld.type != ParserMeld.KAN:
-                            player.draw_tile(meld.called_tile)
+                            player.tiles.append(meld.called_tile)
 
                         # indication that tile was taken from discard
                         if meld.opened:
@@ -170,7 +170,6 @@ class LogParser:
 
                         # for closed kan we had to remove tile from hand
                         if meld.type == ParserMeld.KAN and not meld.opened:
-                            # in riichi we will not have tile in hand
                             if meld.called_tile in player.tiles:
                                 player.tiles.remove(meld.called_tile)
 

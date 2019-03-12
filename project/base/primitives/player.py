@@ -17,6 +17,8 @@ class Player:
         self.in_riichi = False
         self.in_tempai = False
 
+        self.last_drawn_tile = None
+
     def init_hand(self, tiles_string):
         tiles = [int(x) for x in tiles_string.split(',')]
         self.tiles = tiles
@@ -30,6 +32,8 @@ class Player:
         self.discards.append(discard_obj)
 
     def draw_tile(self, tile):
+        self.last_drawn_tile = tile
+
         self.tiles.append(tile)
 
     def add_meld(self, meld):

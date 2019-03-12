@@ -6,15 +6,179 @@ from mahjong.utils import plus_dora, is_aka_dora
 from base.protocol import Protocol
 
 
-class OpenHandCostProtocol(Protocol):
+def prepare_closed_hand_input(
+    round_wind,
+    dora_indicators,
+    player_closed_hand,
+    player_melds,
+    player_discards,
+    tenpai_player_wind,
+    tenpai_player_riichi,
+    tenpai_player_melds,
+    tenpai_player_discards,
+    second_player_melds,
+    second_player_discards,
+    third_player_melds,
+    third_player_discards,
+):
+    """
+    meld dict format = {
+        'tiles': List of 136 format tiles
+    }
+
+    discard dict format = {
+        'tile': 136 format,
+        'is_tsumogiri': bool,
+        'is_after_meld': bool,
+    }
+
+    :param round_wind:                27 (east), 28 (south), 29 (west), 30 (north)
+    :param dora_indicators:           List of 136 format tiles
+    :param player_closed_hand:        Our player. List of 136 format tiles
+    :param player_melds:              Our player. List of meld dicts
+    :param player_discards:           Our player. List of discard dicts
+    :param tenpai_player_wind:        27 (east), 28 (south), 29 (west), 30 (north)
+    :param tenpai_player_riichi:      bool
+    :param tenpai_player_melds:       Tenpai player. List of meld dicts
+    :param tenpai_player_discards:    Tenpai player. List of discard dicts
+    :param second_player_melds:       Second player. List of meld dicts
+    :param second_player_discards:    Second player. List of discard dicts
+    :param third_player_melds:        Third player. List of meld dicts
+    :param third_player_discards:     Third player. List of discard dicts
+
+    :return: list of 0 and 1 values
+    """
     tiles_unique = 34
-    tiles_num = tiles_unique * 4
 
     max_dora_in_hand = 8
     max_dora_on_the_table = 16 + 3
     winds_input_size = 8
 
-    input_size = tiles_unique * 6 + max_dora_in_hand + max_dora_on_the_table + winds_input_size
+    tenpai_player_discards_input = [0 for _ in range(tiles_unique)]
+    tenpai_player_melds_input = [1 for _ in range(tiles_unique)]
+    winds_input = [0 for _ in range(winds_input_size)]
+    dora_in_player_open_melds_input = [0 for _ in range(max_dora_in_hand)]
+    not_visible_dora_on_the_table_input = [0 for _ in range(max_dora_on_the_table)]
+
+    for discard_dict in tenpai_player_discards:
+        tile = discard_dict['tile'] // 4
+        tenpai_player_discards_input[tile] = 1
+
+    for meld in tenpai_player_melds:
+        tiles = meld['tiles']
+        for tile in tiles:
+            tile = tile // 4
+            tenpai_player_melds_input[tile] = 1
+
+    out_tiles_136 = []
+
+    for tile_136 in player_closed_hand:
+        out_tiles_136.append(tile_136)
+
+    for tile_136 in dora_indicators:
+        out_tiles_136.append(tile_136)
+
+    discards = [
+        player_discards,
+        tenpai_player_discards,
+        second_player_discards,
+        third_player_discards
+    ]
+
+    for discards_list in discards:
+        for x in discards_list:
+            # we will add this tile in melds loop
+            if x['was_taken_for_meld']:
+                continue
+
+            out_tiles_136.append(x['tile'])
+
+    melds = [
+        player_melds,
+        tenpai_player_melds,
+        second_player_melds,
+        third_player_melds
+    ]
+
+    for meld_list in melds:
+        for x in meld_list:
+            out_tiles_136.extend(x['tiles'])
+
+    out_tiles = [0 for _ in range(tiles_unique)]
+    for x in out_tiles_136:
+        tile = x // 4
+
+        out_tiles[tile] += 1
+        assert out_tiles[tile] <= 4
+
+    out_tiles_0 = [1 if x >= 1 else 0 for x in out_tiles]
+    out_tiles_1 = [1 if x >= 2 else 0 for x in out_tiles]
+    out_tiles_2 = [1 if x >= 3 else 0 for x in out_tiles]
+    out_tiles_3 = [1 if x == 4 else 0 for x in out_tiles]
+
+    if round_wind == EAST:
+        winds_input[0] = 1
+    elif round_wind == SOUTH:
+        winds_input[1] = 1
+    elif round_wind == WEST:
+        winds_input[2] = 1
+    elif round_wind == NORTH:
+        winds_input[3] = 1
+
+    if tenpai_player_wind == EAST:
+        winds_input[4] = 1
+    elif tenpai_player_wind == SOUTH:
+        winds_input[5] = 1
+    elif tenpai_player_wind == WEST:
+        winds_input[6] = 1
+    elif tenpai_player_wind == NORTH:
+        winds_input[7] = 1
+
+    number_of_dora_in_player_open_melds = 0
+    player_melds = tenpai_player_melds
+    for meld in player_melds:
+        for tile in meld['tiles']:
+            number_of_dora_in_player_open_melds += plus_dora(tile, dora_indicators)
+            if is_aka_dora(tile, True):
+                number_of_dora_in_player_open_melds += 1
+
+    if number_of_dora_in_player_open_melds > max_dora_in_hand:
+        number_of_dora_in_player_open_melds = max_dora_in_hand
+
+    for i in range(max_dora_in_hand):
+        if i + 1 <= number_of_dora_in_player_open_melds:
+            dora_in_player_open_melds_input[i] = 1
+
+    visible_dora = 0
+    for visible_tile in out_tiles:
+        visible_dora += plus_dora(visible_tile, dora_indicators)
+        if is_aka_dora(visible_tile, True):
+            visible_dora += 1
+
+    not_visible_dora = max_dora_on_the_table - visible_dora
+
+    for i in range(max_dora_on_the_table):
+        if i + 1 <= not_visible_dora:
+            not_visible_dora_on_the_table_input[i] = 1
+
+    return list(itertools.chain(
+        winds_input,
+        not_visible_dora_on_the_table_input,
+        dora_in_player_open_melds_input,
+        tenpai_player_discards_input,
+        tenpai_player_melds_input,
+        out_tiles_0,
+        out_tiles_1,
+        out_tiles_2,
+        out_tiles_3,
+    ))
+
+
+class OpenHandCostProtocol(Protocol):
+    tiles_unique = 34
+    tiles_num = tiles_unique * 4
+
+    input_size = 239
     output_size = 9
 
     hand_cost_mapping = {
@@ -47,132 +211,26 @@ class OpenHandCostProtocol(Protocol):
 
     def parse_new_data(self, raw_data):
         for index, row in raw_data:
-            # total number of out tiles (all discards, all melds, player hand, dora indicators)
-            out_tiles = [0 for _ in range(self.tiles_unique)]
-            defending_hand = []
-
-            discards, tsumogiri, after_meld, melds, discards_last, discards_second_last, out_tiles = self.process_discards(
-                row['tenpai_player_discards'],
-                row['tenpai_player_melds'],
-                out_tiles
-            )
-
-            sp_discards, sp_tsumogiri, sp_after_meld, sp_melds, sp_discards_last, sp_discards_second_last, out_tiles = self.process_discards(
-                row['second_player_discards'],
-                row['second_player_melds'],
-                out_tiles
-            )
-
-            tp_discards, tp_tsumogiri, tp_after_meld, tp_melds, tp_discards_last, tp_discards_second_last, out_tiles = self.process_discards(
-                row['third_player_discards'],
-                row['third_player_melds'],
-                out_tiles
-            )
-
-            for x in self.prepare_discards(row['player_discards']):
-                out_tiles[x[0] // 4] += 1
-
-            for x in [int(x) for x in row['player_hand'].split(',')]:
-                defending_hand.append(x // 4)
-                out_tiles[x // 4] += 1
-
             dora_indicators = [int(x) for x in str(row['dora_indicators']).split(',')]
-            for x in dora_indicators:
-                out_tiles[x // 4] += 1
+            player_hand = [int(x) for x in str(row['player_hand']).split(',')]
 
-            number_of_dora_in_player_open_melds = 0
-            player_melds = self.prepare_melds(row['tenpai_player_melds'])
-            for meld in player_melds:
-                for tile in meld[0]:
-                    number_of_dora_in_player_open_melds += plus_dora(tile, dora_indicators)
-                    if is_aka_dora(tile, True):
-                        number_of_dora_in_player_open_melds += 1
+            input_data = prepare_closed_hand_input(
+                int(row['round_wind']),
+                dora_indicators,
+                player_hand,
+                self.prepare_melds(row['player_melds']),
+                self.prepare_discards(row['player_discards']),
+                int(row['tenpai_player_wind']),
+                row['tenpai_player_in_riichi'] == 1,
+                self.prepare_melds(row['tenpai_player_melds']),
+                self.prepare_discards(row['tenpai_player_discards']),
+                self.prepare_melds(row['second_player_melds']),
+                self.prepare_discards(row['second_player_discards']),
+                self.prepare_melds(row['third_player_melds']),
+                self.prepare_discards(row['third_player_discards']),
+            )
 
-            if number_of_dora_in_player_open_melds > self.max_dora_in_hand:
-                number_of_dora_in_player_open_melds = self.max_dora_in_hand
-
-            dora_in_player_open_melds = [0 for _ in range(self.max_dora_in_hand)]
-            for i in range(self.max_dora_in_hand):
-                if i + 1 <= number_of_dora_in_player_open_melds:
-                    dora_in_player_open_melds[i] = 1
-
-            visible_dora = 0
-            visible_tiles = []
-            discard_names = [
-                'player_discards',
-                'tenpai_player_discards',
-                'second_player_discards',
-                'third_player_discards',
-            ]
-
-            for discard in discard_names:
-                discards_temp = self.prepare_discards(getattr(row, discard))
-                for x in discards_temp:
-                    visible_tiles.append(x[0])
-
-            meld_names = [
-                'player_melds',
-                'second_player_melds',
-                'third_player_melds',
-            ]
-
-            for meld_name in meld_names:
-                melds_temp = self.prepare_melds(getattr(row, meld_name))
-                for x in melds_temp:
-                    visible_tiles.extend(x[0])
-
-            visible_tiles.extend(dora_indicators)
-
-            for visible_tile in visible_tiles:
-                visible_dora += plus_dora(visible_tile, dora_indicators)
-                if is_aka_dora(visible_tile, True):
-                    visible_dora += 1
-
-            not_visible_dora = self.max_dora_on_the_table - visible_dora
-
-            not_visible_dora_on_the_table = [0 for _ in range(self.max_dora_on_the_table)]
-            for i in range(self.max_dora_on_the_table):
-                if i + 1 <= not_visible_dora:
-                    not_visible_dora_on_the_table[i] = 1
-
-            winds_input = [0 for _ in range(self.winds_input_size)]
-            round_wind = int(row.get('round_wind'))
-            player_wind = int(row.get('tenpai_player_wind'))
-
-            if round_wind == EAST:
-                winds_input[0] = 1
-            elif round_wind == SOUTH:
-                winds_input[1] = 1
-            elif round_wind == WEST:
-                winds_input[2] = 1
-            elif round_wind == NORTH:
-                winds_input[3] = 1
-
-            if player_wind == EAST:
-                winds_input[4] = 1
-            elif player_wind == SOUTH:
-                winds_input[5] = 1
-            elif player_wind == WEST:
-                winds_input[6] = 1
-            elif player_wind == NORTH:
-                winds_input[7] = 1
-
-            out_tiles_0 = [1 if x >= 1 else 0 for x in out_tiles]
-            out_tiles_1 = [1 if x >= 2 else 0 for x in out_tiles]
-            out_tiles_2 = [1 if x >= 3 else 0 for x in out_tiles]
-            out_tiles_3 = [1 if x == 4 else 0 for x in out_tiles]
-
-            input_data = list(itertools.chain(
-                winds_input,
-                not_visible_dora_on_the_table,
-                dora_in_player_open_melds,
-                discards,
-                melds,
-                out_tiles_0,
-                out_tiles_1,
-                out_tiles_2,
-                out_tiles_3,
-            ))
+            input_data = self.after_input_completed(row, input_data)
 
             if len(input_data) != self.input_size:
                 print('Internal error: len(input_data) should be {}, but is {}'.format(
@@ -219,11 +277,14 @@ class OpenHandCostProtocol(Protocol):
                 tenpai_discards,
                 tenpai_melds,
                 waiting,
-                defending_hand,
+                [x // 4 for x in player_hand],
                 dora_indicators,
             ]
 
             self.verification_data.append(verification_data)
+
+    def after_input_completed(self, row, input_data):
+        return input_data
 
     @staticmethod
     def create_hand_cost_key(han, fu):
