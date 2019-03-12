@@ -16,8 +16,8 @@ class Player:
         self.dealer_seat = dealer_seat
         self.in_riichi = False
         self.in_tempai = False
-
         self.last_drawn_tile = None
+        self.scores = 0
 
     def init_hand(self, tiles_string):
         tiles = [int(x) for x in tiles_string.split(',')]

@@ -15,7 +15,7 @@ class Table:
 
         self.players = []
 
-    def init(self, dealer_seat, current_hand, dora_indicator, step):
+    def init(self, dealer_seat, current_hand, dora_indicator, step, scores):
         self.dora_indicators = [dora_indicator]
 
         self.dealer_seat = dealer_seat
@@ -23,6 +23,9 @@ class Table:
         self.step = step
 
         self.players = [Player(self, x, dealer_seat) for x in range(0, 4)]
+
+        for i in range(0, len(scores)):
+            self.get_player(i).scores = scores[i] * 100
 
     def get_player(self, player_seat):
         return self.players[player_seat]

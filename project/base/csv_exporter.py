@@ -9,17 +9,25 @@ class CSVExporter:
             'log_id',
             'round_wind',
             'dora_indicators',
+
+            'tenpai_player_scores',
             'tenpai_player_hand',
             'tenpai_player_waiting',
             'tenpai_player_discards',
             'tenpai_player_melds',
             'tenpai_player_wind',
             'tenpai_player_in_riichi',
+
+            'player_scores',
             'player_hand',
             'player_discards',
             'player_melds',
+
+            'second_player_scores',
             'second_player_discards',
             'second_player_melds',
+
+            'third_player_scores',
             'third_player_discards',
             'third_player_melds',
         ]
@@ -54,17 +62,25 @@ class CSVExporter:
             table.log_id,
             table.round_wind,
             ','.join([str(x) for x in table.dora_indicators]),
+
+            tenpai_player.scores,
             ','.join([str(x) for x in tenpai_player.closed_hand]),
             ','.join(tenpai_player_waiting),
             encode_discards(tenpai_player.discards),
             encode_melds(tenpai_player.melds),
             tenpai_player.player_wind,
             tenpai_player.in_riichi and 1 or 0,
+
+            player.scores,
             ','.join([str(x) for x in player.closed_hand]),
             encode_discards(player.discards),
             encode_melds(player.melds),
+
+            second_player.scores,
             encode_discards(second_player.discards),
             encode_melds(second_player.melds),
+
+            third_player.scores,
             encode_discards(third_player.discards),
             encode_melds(third_player.melds),
         ]

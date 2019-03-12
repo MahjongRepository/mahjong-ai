@@ -102,8 +102,9 @@ class LogParser:
                         current_hand = seed[0]
                         dora_indicator = seed[5]
                         dealer_seat = int(self.get_attribute_content(tag, 'oya'))
+                        scores = [int(x) for x in self.get_attribute_content(tag, 'ten').split(',')]
 
-                        table.init(dealer_seat, current_hand, dora_indicator, step)
+                        table.init(dealer_seat, current_hand, dora_indicator, step, scores)
 
                         table.get_player(0).init_hand(self.get_attribute_content(tag, 'hai0'))
                         table.get_player(1).init_hand(self.get_attribute_content(tag, 'hai1'))
