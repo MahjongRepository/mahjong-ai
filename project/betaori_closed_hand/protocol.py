@@ -48,46 +48,48 @@ def prepare_betaori_input(
 
     tiles_unique = 34
 
+    # tenpai_player_discards_input_second = [0 for _ in range(tiles_unique)]
     tenpai_player_discards_input = [0 for _ in range(tiles_unique)]
-    tenpai_player_tsumogiri_input = [1 for _ in range(tiles_unique)]
-    tenpai_player_after_meld_input = [1 for _ in range(tiles_unique)]
-    tenpai_player_melds_input = [1 for _ in range(tiles_unique)]
-    tenpai_player_discards_last_input = [1 for _ in range(tiles_unique)]
-    tenpai_player_discards_second_last_input = [1 for _ in range(tiles_unique)]
+    # tenpai_player_tsumogiri_input = [1 for _ in range(tiles_unique)]
+    # tenpai_player_after_meld_input = [0 for _ in range(tiles_unique)]
+    tenpai_player_melds_input = [0 for _ in range(tiles_unique)]
+    # tenpai_player_discards_last_input = [0 for _ in range(tiles_unique)]
+    # tenpai_player_discards_second_last_input = [0 for _ in range(tiles_unique)]
 
-    for discard_dict in tenpai_player_discards:
+    for i, discard_dict in enumerate(tenpai_player_discards):
         tile = discard_dict['tile'] // 4
         tenpai_player_discards_input[tile] = 1
-
-        if discard_dict['is_tsumogiri']:
-            tenpai_player_tsumogiri_input[tile] = 1
-
-        if discard_dict['is_after_meld']:
-            tenpai_player_after_meld_input[tile] = 1
-
+    #     # tenpai_player_discards_input[tile] = 1
+    #
+    #     if discard_dict['is_tsumogiri']:
+    #         tenpai_player_tsumogiri_input[tile] = 0
+    #     #
+    #     if discard_dict['is_after_meld']:
+    #         tenpai_player_after_meld_input[tile] = 1
+    #
     for meld in tenpai_player_melds:
         tiles = meld['tiles']
         for tile in tiles:
             tile = tile // 4
             tenpai_player_melds_input[tile] = 1
-
-    is_last = True
-    for x in reversed(tenpai_player_discards):
-        tile = x['tile'] // 4
-        is_tsumogiri = x['is_tsumogiri']
-
-        if is_last:
-            if not is_tsumogiri:
-                tenpai_player_discards_last_input[tile] = 1
-                is_last = False
-
-            continue
-        else:
-            if not is_tsumogiri:
-                tenpai_player_discards_second_last_input[tile] = 1
-                break
-
-            continue
+    #
+    # is_last = True
+    # for x in reversed(tenpai_player_discards):
+    #     tile = x['tile'] // 4
+    #     is_tsumogiri = x['is_tsumogiri']
+    #
+    #     if is_last:
+    #         if not is_tsumogiri:
+    #             tenpai_player_discards_last_input[tile] = 1
+    #             is_last = False
+    #
+    #         continue
+    #     else:
+    #         if not is_tsumogiri:
+    #             tenpai_player_discards_second_last_input[tile] = 1
+    #             break
+    #
+    #         continue
 
     out_tiles_136 = []
 
@@ -137,11 +139,7 @@ def prepare_betaori_input(
 
     return list(itertools.chain(
         tenpai_player_discards_input,
-        tenpai_player_tsumogiri_input,
-        tenpai_player_after_meld_input,
         tenpai_player_melds_input,
-        tenpai_player_discards_last_input,
-        tenpai_player_discards_second_last_input,
         out_tiles_0,
         out_tiles_1,
         out_tiles_2,
@@ -150,7 +148,7 @@ def prepare_betaori_input(
 
 
 class BetaoriClosedHandProtocol(Protocol):
-    input_size = Protocol.tiles_unique * 10
+    input_size = 204
     output_size = Protocol.tiles_unique
 
     def parse_new_data(self, raw_data):
