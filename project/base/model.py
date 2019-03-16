@@ -57,15 +57,6 @@ class Model:
         logger.info('Units: {}'.format(self.units))
         logger.info('')
 
-        test_file_path = os.path.join(self.data_path, 'test.p')
-        test_data = pickle.load(open(test_file_path, 'rb'))
-
-        test_samples = len(test_data.input_data)
-        test_input = np.asarray(test_data.input_data).astype('float32')
-        test_output = np.asarray(test_data.output_data).astype('float32')
-        test_verification = test_data.verification_data
-        logger.info('Test data size = {}'.format(test_samples))
-
         if self.load_epoch == 0:
             os.mkdir(self.model_directory)
 
@@ -73,6 +64,9 @@ class Model:
             data_files = []
             for f in data_files_temp:
                 if not f.endswith('.h5'):
+                    continue
+
+                if f.startswith('test_'):
                     continue
 
                 data_files.append(f)
@@ -102,18 +96,11 @@ class Model:
                         shuffle='batch',
                         epochs=1,
                         batch_size=self.batch_size,
-                        validation_data=(test_input, test_output),
                         callbacks=[LoggingCallback(self.graphs_data)]
                     )
 
                 logger.info('Predictions after epoch #{}'.format(n_epoch))
-                self.calculate_predictions(
-                    model,
-                    test_input,
-                    test_output,
-                    test_verification,
-                    n_epoch
-                )
+                self.calculate_predictions(model, n_epoch)
 
                 # We save model after each epoch
                 logger.info('Saving model, please don\'t interrupt...')
@@ -126,12 +113,9 @@ class Model:
             for f in model_files:
                 if f.startswith('{}_'.format(self.load_epoch)):
                     model_file = f
+
             model = load_model(os.path.join(self.model_directory, model_file))
-
-        results = model.evaluate(test_input, test_output, verbose=1)
-        logger.info('results [loss, acc] = {}'.format(results))
-
-        self.calculate_predictions(model, test_input, test_output, test_verification, None)
+            self.calculate_predictions(model, None)
 
         if self.graphs_data.get('first'):
             self.print_best_result()
@@ -156,7 +140,7 @@ class Model:
 
         return model
 
-    def calculate_predictions(self, model, test_input, test_output, test_verification, epoch):
+    def calculate_predictions(self, model, epoch):
         pass
 
     def print_best_result(self):

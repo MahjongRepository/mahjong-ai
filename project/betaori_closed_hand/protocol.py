@@ -1,6 +1,7 @@
 import itertools
 
 from base.protocol import Protocol
+import numpy as np
 
 
 def prepare_betaori_input(
@@ -47,26 +48,40 @@ def prepare_betaori_input(
     """
 
     tiles_unique = 34
+    max_tiles_in_discard = 24
 
-    # tenpai_player_discards_input_second = [0 for _ in range(tiles_unique)]
     tenpai_player_discards_input = [0 for _ in range(tiles_unique)]
+    # tenpai_player_discards_input = [[0] * tiles_unique + [1, 0] for _ in range(max_tiles_in_discard)]
     # tenpai_player_tsumogiri_input = [1 for _ in range(tiles_unique)]
     # tenpai_player_after_meld_input = [0 for _ in range(tiles_unique)]
     tenpai_player_melds_input = [0 for _ in range(tiles_unique)]
     # tenpai_player_discards_last_input = [0 for _ in range(tiles_unique)]
     # tenpai_player_discards_second_last_input = [0 for _ in range(tiles_unique)]
 
+    # for i, discard_dict in enumerate(tenpai_player_discards):
+    #     tile = discard_dict['tile'] // 4
+    #     tenpai_player_discards_input[i][tile] = 1
+    #
+    #     if discard_dict['is_tsumogiri']:
+    #         tenpai_player_discards_input[i][tiles_unique] = 0
+    #
+    #     if discard_dict['is_after_meld']:
+    #         tenpai_player_discards_input[i][tiles_unique + 1] = 1
+    #
+    # tenpai_player_discards_input = np.hstack(tenpai_player_discards_input)
+
     for i, discard_dict in enumerate(tenpai_player_discards):
         tile = discard_dict['tile'] // 4
         tenpai_player_discards_input[tile] = 1
-    #     # tenpai_player_discards_input[tile] = 1
+        # tenpai_player_discards_input[tile] = 1
+        #
+        # if discard_dict['is_tsumogiri']:
+        #     tenpai_player_tsumogiri_input[tile] = 0
+        # #
+        # if discard_dict['is_after_meld']:
+        #     tenpai_player_after_meld_input[tile] = 1
     #
-    #     if discard_dict['is_tsumogiri']:
-    #         tenpai_player_tsumogiri_input[tile] = 0
-    #     #
-    #     if discard_dict['is_after_meld']:
-    #         tenpai_player_after_meld_input[tile] = 1
-    #
+
     for meld in tenpai_player_melds:
         tiles = meld['tiles']
         for tile in tiles:
@@ -148,7 +163,7 @@ def prepare_betaori_input(
 
 
 class BetaoriClosedHandProtocol(Protocol):
-    input_size = 204
+    input_size = 1034
     output_size = Protocol.tiles_unique
 
     def parse_new_data(self, raw_data):

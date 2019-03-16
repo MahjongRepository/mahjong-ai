@@ -7,7 +7,7 @@ import os
 
 import gc
 import h5py
-import pickle
+import hickle
 import pandas as pd
 import numpy as np
 
@@ -56,6 +56,13 @@ def main():
     )
 
     parser.add_option(
+        '--test-chunk',
+        type='int',
+        help='test file chunk size',
+        default=50000
+    )
+
+    parser.add_option(
         '--percentage',
         type='int',
         help='test data percentage',
@@ -67,6 +74,7 @@ def main():
     data_path = opts.train_path
     test_path = opts.test_path
     chunk_size = opts.chunk
+    test_file_chunk_size = opts.test_chunk
     test_data_percentage = opts.percentage
     output_directory_name = opts.output
 
@@ -88,8 +96,6 @@ def main():
 
     if not protocol:
         parser.error('Possible values for protocol are: {}'.format(', '.join(protocols.keys())))
-
-    protocol = protocol()
 
     set_up_logging('prepare_data')
     
@@ -115,14 +121,25 @@ def main():
 
     # our test data had to be in separate file
     header = CSVExporter.header()
-    test_data = pd.read_csv(test_path, names=header, nrows=test_count)
-    test_data = test_data.replace([None, np.nan, 'None', 'NaN', 'nan'], '')
+    # test_data = pd.read_csv(test_path, names=header, nrows=test_count)
+    # test_data = test_data.replace([None, np.nan, 'None', 'NaN', 'nan'], '')
+    #
+    # protocol.parse_new_data(test_data.iterrows())
 
-    protocol.parse_new_data(test_data.iterrows())
+    for i, chunk in enumerate(pd.read_csv(test_path, chunksize=test_file_chunk_size, names=header, nrows=test_count)):
+        file_name = 'test_chunk_{:03}.hkl'.format(i)
+        logger.info('Processing {}...'.format(file_name))
 
-    logger.info('Saving test.p file...')
-    protocol_test_path = os.path.join(data_dir, 'test.p')
-    pickle.dump(protocol, open(protocol_test_path, 'wb'))
+        protocol = protocols.get(protocol_string)
+        protocol = protocol()
+
+        chunk = chunk.replace([None, np.nan, 'None', 'NaN', 'nan'], '')
+        protocol.parse_new_data(chunk.iterrows())
+
+        test_path = os.path.join(data_dir, file_name)
+        hickle.dump(protocol, test_path, mode='w')
+
+        gc.collect()
 
     logger.info('')
     logger.info('Processing train data...')
