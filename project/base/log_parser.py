@@ -4,7 +4,7 @@ import re
 from mahjong.agari import Agari
 from mahjong.constants import AKA_DORA_LIST
 from mahjong.hand_calculating.hand import HandCalculator
-from mahjong.hand_calculating.hand_config import HandConfig
+from mahjong.hand_calculating.hand_config import HandConfig, OptionalRules
 from mahjong.shanten import Shanten
 from mahjong.tile import TilesConverter
 
@@ -13,7 +13,7 @@ from base.primitives.discard import Discard
 from base.primitives.meld import ParserMeld
 from base.primitives.table import Table
 
-logger = logging.getLogger('logs')
+logger = logging.getLogger("logs")
 
 
 class LogParser:
@@ -49,12 +49,12 @@ class LogParser:
         current_tags = []
 
         for x in range(0, len(log_content)):
-            if log_content[x] == '>':
-                tag = log_content[tag_start:x+1]
+            if log_content[x] == ">":
+                tag = log_content[tag_start : x + 1]
                 tag_start = x + 1
 
             # not useful tags
-            skip_tags = ['SHUFFLE', 'TAIKYOKU', 'mjloggm', 'GO', 'UN']
+            skip_tags = ["SHUFFLE", "TAIKYOKU", "mjloggm", "GO", "UN"]
             if tag and any([x in tag for x in skip_tags]):
                 tag = None
 
@@ -64,7 +64,7 @@ class LogParser:
                 current_tags = []
 
             # the end of the game
-            if tag and 'owari' in tag:
+            if tag and "owari" in tag:
                 rounds.append(current_tags)
 
             if tag:
@@ -72,7 +72,7 @@ class LogParser:
                     # we dont need seed information
                     # it appears in old logs format
                     find = re.compile(r'shuffle="[^"]*"')
-                    tag = find.sub('', tag)
+                    tag = find.sub("", tag)
 
                     current_tags.append('<LOG_ID id="{}" />'.format(log_id))
 
@@ -94,22 +94,22 @@ class LogParser:
             try:
                 for tag in round_item:
                     if self.is_log_id(tag):
-                        log_id = self.get_attribute_content(tag, 'id')
+                        log_id = self.get_attribute_content(tag, "id")
                         table.log_id = log_id
 
                     if self.is_init_tag(tag):
-                        seed = [int(x) for x in self.get_attribute_content(tag, 'seed').split(',')]
+                        seed = [int(x) for x in self.get_attribute_content(tag, "seed").split(",")]
                         current_hand = seed[0]
                         dora_indicator = seed[5]
-                        dealer_seat = int(self.get_attribute_content(tag, 'oya'))
-                        scores = [int(x) for x in self.get_attribute_content(tag, 'ten').split(',')]
+                        dealer_seat = int(self.get_attribute_content(tag, "oya"))
+                        scores = [int(x) for x in self.get_attribute_content(tag, "ten").split(",")]
 
                         table.init(dealer_seat, current_hand, dora_indicator, step, scores)
 
-                        table.get_player(0).init_hand(self.get_attribute_content(tag, 'hai0'))
-                        table.get_player(1).init_hand(self.get_attribute_content(tag, 'hai1'))
-                        table.get_player(2).init_hand(self.get_attribute_content(tag, 'hai2'))
-                        table.get_player(3).init_hand(self.get_attribute_content(tag, 'hai3'))
+                        table.get_player(0).init_hand(self.get_attribute_content(tag, "hai0"))
+                        table.get_player(1).init_hand(self.get_attribute_content(tag, "hai1"))
+                        table.get_player(2).init_hand(self.get_attribute_content(tag, "hai2"))
+                        table.get_player(3).init_hand(self.get_attribute_content(tag, "hai3"))
 
                         step += 1
 
@@ -170,15 +170,18 @@ class LogParser:
                                     meld_player.discards[-1].was_given_for_meld = True
 
                         # for closed kan we had to remove tile from hand
-                        if meld.type == ParserMeld.KAN and not meld.opened:
-                            if meld.called_tile in player.tiles:
-                                player.tiles.remove(meld.called_tile)
+                        if (
+                            meld.type == ParserMeld.KAN
+                            and not meld.opened
+                            and meld.called_tile in player.tiles
+                        ):
+                            player.tiles.remove(meld.called_tile)
 
                         who_called_meld_on_this_step = meld.who
 
                     if self.is_riichi(tag):
-                        riichi_step = int(self.get_attribute_content(tag, 'step'))
-                        who = int(self.get_attribute_content(tag, 'who'))
+                        riichi_step = int(self.get_attribute_content(tag, "step"))
+                        who = int(self.get_attribute_content(tag, "who"))
                         player = table.get_player(who)
 
                         if riichi_step == 1:
@@ -188,11 +191,11 @@ class LogParser:
                             player.discards[-1].after_riichi = True
 
                     if self.is_new_dora(tag):
-                        dora = int(self.get_attribute_content(tag, 'hai'))
+                        dora = int(self.get_attribute_content(tag, "hai"))
                         table.add_dora(dora)
 
             except Exception as e:
-                logger.error('Failed to process log: {}'.format(log_id))
+                logger.error("Failed to process log: {}".format(log_id))
                 logger.error(e, exc_info=True)
 
         return self.data_to_save
@@ -225,8 +228,7 @@ class LogParser:
                 is_riichi=player.discards[-1].after_riichi,
                 player_wind=player.player_wind,
                 round_wind=player.table.round_wind,
-                has_aka_dora=True,
-                has_open_tanyao=True
+                options=OptionalRules(has_aka_dora=True, has_open_tanyao=True),
             )
 
             win_tile = tile * 4
@@ -237,29 +239,21 @@ class LogParser:
             tiles = player.tiles + [win_tile]
 
             result = self.finished_hand.estimate_hand_value(
-                tiles,
-                win_tile,
-                player.melds,
-                player.table.dora_indicators,
-                config
+                tiles, win_tile, player.melds, player.table.dora_indicators, config
             )
 
             if result.error:
-                waiting.append({
-                    'tile': win_tile,
-                    'han': None,
-                    'fu': None,
-                    'cost': 0,
-                    'yaku': []
-                })
+                waiting.append({"tile": win_tile, "han": None, "fu": None, "cost": 0, "yaku": []})
             else:
-                waiting.append({
-                    'tile': win_tile,
-                    'han': result.han,
-                    'fu': result.fu,
-                    'cost': result.cost['main'],
-                    'yaku': [{'id': x.yaku_id, 'name': x.name} for x in result.yaku]
-                })
+                waiting.append(
+                    {
+                        "tile": win_tile,
+                        "han": result.han,
+                        "fu": result.fu,
+                        "cost": result.cost["main"],
+                        "yaku": [{"id": x.yaku_id, "name": x.name} for x in result.yaku],
+                    }
+                )
 
         return waiting
 
@@ -268,7 +262,7 @@ class LogParser:
         return result and result[0] or None
 
     def is_discard(self, tag):
-        skip_tags = ['<GO', '<FURITEN', '<DORA']
+        skip_tags = ["<GO", "<FURITEN", "<DORA"]
         if any([x in tag for x in skip_tags]):
             return False
 
@@ -286,16 +280,16 @@ class LogParser:
         return False
 
     def parse_tile(self, message):
-        result = re.match(r'^<[defgtuvwDEFGTUVW]+\d*', message).group()
+        result = re.match(r"^<[defgtuvwDEFGTUVW]+\d*", message).group()
         return int(result[2:])
 
     def get_player_seat(self, tag):
         player_sign = tag.lower()[1]
-        if player_sign == 'd' or player_sign == 't':
+        if player_sign == "d" or player_sign == "t":
             player_seat = 0
-        elif player_sign == 'e' or player_sign == 'u':
+        elif player_sign == "e" or player_sign == "u":
             player_seat = 1
-        elif player_sign == 'f' or player_sign == 'v':
+        elif player_sign == "f" or player_sign == "v":
             player_seat = 2
         else:
             player_seat = 3
@@ -303,8 +297,8 @@ class LogParser:
         return player_seat
 
     def parse_meld(self, tag):
-        who = int(self.get_attribute_content(tag, 'who'))
-        data = int(self.get_attribute_content(tag, 'm'))
+        who = int(self.get_attribute_content(tag, "who"))
+        data = int(self.get_attribute_content(tag, "m"))
 
         meld = ParserMeld()
         meld.who = who
@@ -358,22 +352,22 @@ class LogParser:
         meld.opened = meld.who != meld.from_who
 
     def is_init_tag(self, tag):
-        return tag and 'INIT' in tag
+        return tag and "INIT" in tag
 
     def is_redraw_tag(self, tag):
-        return tag and 'RYUUKYOKU' in tag
+        return tag and "RYUUKYOKU" in tag
 
     def is_agari_tag(self, tag):
-        return tag and 'AGARI' in tag
+        return tag and "AGARI" in tag
 
     def is_log_id(self, tag):
-        return tag and 'LOG_ID' in tag
+        return tag and "LOG_ID" in tag
 
     def is_meld_set(self, tag):
-        return tag and '<N who=' in tag
+        return tag and "<N who=" in tag
 
     def is_riichi(self, tag):
-        return tag and 'REACH ' in tag
+        return tag and "REACH " in tag
 
     def is_new_dora(self, tag):
-        return tag and '<DORA' in tag
+        return tag and "<DORA" in tag

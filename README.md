@@ -1,4 +1,4 @@
-# Current results
+# Best results
 
 ## Betaori model
 
@@ -80,7 +80,6 @@ The random prediction was run on 886,504 samples. We did it to compare how our t
 
 # How to set up it locally
 
-1. `cd project`
-2. `virtualenv env --python=python3`
-3. `source env/bin/activate`
-4. `pip install -r requirements.txt`
+1. `virtualenv env --python=python3`
+1. `source env/bin/activate`
+1. `pip install -r requirements.txt`

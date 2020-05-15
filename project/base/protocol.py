@@ -15,26 +15,25 @@ class Protocol:
         if not data:
             return []
 
-        discards_temp = [x for x in data.split(',')]
+        discards_temp = [x for x in data.split(",")]
         result = []
         for x in discards_temp:
-            temp = x.split(';')
-            result.append({
-                'tile': int(temp[0]),
-                'is_tsumogiri': int(temp[1]) == 1,
-                'is_after_meld': int(temp[2]) == 1,
-                'was_taken_for_meld': int(temp[4]) == 1,
-            })
+            temp = x.split(";")
+            result.append(
+                {
+                    "tile": int(temp[0]),
+                    "is_tsumogiri": int(temp[1]) == 1,
+                    "is_after_meld": int(temp[2]) == 1,
+                    "was_taken_for_meld": int(temp[4]) == 1,
+                }
+            )
         return result
 
     def prepare_melds(self, data):
         melds = []
-        melds_temp = [x for x in data.split(',') if x]
+        melds_temp = [x for x in data.split(",") if x]
         for x in melds_temp:
-            temp = x.split(';')
-            tiles = [int(x) for x in temp[1].split('/')]
-            melds.append({
-                'tiles': tiles,
-                'type': temp[0]
-            })
+            temp = x.split(";")
+            tiles = [int(x) for x in temp[1].split("/")]
+            melds.append({"tiles": tiles, "type": temp[0]})
         return melds

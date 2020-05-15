@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 
 
 def show_graphs(data):
-    epoch_key = 'epoch'
+    epoch_key = "epoch"
 
     fig = plt.figure(figsize=(10, 10))
     for i, value in enumerate(data.values()):
@@ -17,6 +17,6 @@ def show_graphs(data):
             plt.plot(x_values, y_values, label=key)
 
         plt.legend()
-        plt.xlabel('Epochs')
+        plt.xlabel("Epochs")
 
     plt.show()

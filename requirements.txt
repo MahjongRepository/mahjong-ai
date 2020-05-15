@@ -1,0 +1,22 @@
+mahjong==1.1.10
+
+tensorflow-gpu==2.2.0
+Keras==2.3.1
+
+h5py==2.10.0
+hickle==3.4.6
+
+pandas==1.0.3
+numpy==1.18.4
+scikit-learn==0.23.0
+
+# it requires "sudo apt-get install python3-tk"
+matplotlib==3.2.1
+
+tqdm==4.46.0
+
+# for formatting, linters and tests
+isort==4.3.21
+black==19.10b0
+flake8==3.7.9
+flake8-bugbear==20.1.4

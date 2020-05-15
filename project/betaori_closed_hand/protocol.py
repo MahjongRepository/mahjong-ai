@@ -1,7 +1,8 @@
 import itertools
 
-from base.protocol import Protocol
 import numpy as np
+
+from base.protocol import Protocol
 
 
 def prepare_betaori_input(
@@ -71,7 +72,7 @@ def prepare_betaori_input(
     # tenpai_player_discards_input = np.hstack(tenpai_player_discards_input)
 
     for i, discard_dict in enumerate(tenpai_player_discards):
-        tile = discard_dict['tile'] // 4
+        tile = discard_dict["tile"] // 4
         tenpai_player_discards_input[tile] = 1
         # tenpai_player_discards_input[tile] = 1
         #
@@ -83,7 +84,7 @@ def prepare_betaori_input(
     #
 
     for meld in tenpai_player_melds:
-        tiles = meld['tiles']
+        tiles = meld["tiles"]
         for tile in tiles:
             tile = tile // 4
             tenpai_player_melds_input[tile] = 1
@@ -118,27 +119,22 @@ def prepare_betaori_input(
         player_discards,
         tenpai_player_discards,
         second_player_discards,
-        third_player_discards
+        third_player_discards,
     ]
 
     for discards_list in discards:
         for x in discards_list:
             # we will add this tile in melds loop
-            if x['was_taken_for_meld']:
+            if x["was_taken_for_meld"]:
                 continue
 
-            out_tiles_136.append(x['tile'])
+            out_tiles_136.append(x["tile"])
 
-    melds = [
-        player_melds,
-        tenpai_player_melds,
-        second_player_melds,
-        third_player_melds
-    ]
+    melds = [player_melds, tenpai_player_melds, second_player_melds, third_player_melds]
 
     for meld_list in melds:
         for x in meld_list:
-            out_tiles_136.extend(x['tiles'])
+            out_tiles_136.extend(x["tiles"])
 
     out_tiles = [0 for _ in range(tiles_unique)]
     for x in out_tiles_136:
@@ -152,14 +148,16 @@ def prepare_betaori_input(
     out_tiles_2 = [1 if x >= 3 else 0 for x in out_tiles]
     out_tiles_3 = [1 if x == 4 else 0 for x in out_tiles]
 
-    return list(itertools.chain(
-        tenpai_player_discards_input,
-        tenpai_player_melds_input,
-        out_tiles_0,
-        out_tiles_1,
-        out_tiles_2,
-        out_tiles_3,
-    ))
+    return list(
+        itertools.chain(
+            tenpai_player_discards_input,
+            tenpai_player_melds_input,
+            out_tiles_0,
+            out_tiles_1,
+            out_tiles_2,
+            out_tiles_3,
+        )
+    )
 
 
 class BetaoriClosedHandProtocol(Protocol):
@@ -168,30 +166,31 @@ class BetaoriClosedHandProtocol(Protocol):
 
     def parse_new_data(self, raw_data):
         for index, row in raw_data:
-            dora_indicators = [int(x) for x in str(row['dora_indicators']).split(',')]
-            player_hand = [int(x) for x in str(row['player_hand']).split(',')]
+            dora_indicators = [int(x) for x in str(row["dora_indicators"]).split(",")]
+            player_hand = [int(x) for x in str(row["player_hand"]).split(",")]
 
             input_data = prepare_betaori_input(
-                int(row['round_wind']),
+                int(row["round_wind"]),
                 dora_indicators,
                 player_hand,
-                self.prepare_melds(row['player_melds']),
-                self.prepare_discards(row['player_discards']),
-                int(row['tenpai_player_wind']),
-                row['tenpai_player_in_riichi'] == 1,
-                self.prepare_melds(row['tenpai_player_melds']),
-                self.prepare_discards(row['tenpai_player_discards']),
-                self.prepare_melds(row['second_player_melds']),
-                self.prepare_discards(row['second_player_discards']),
-                self.prepare_melds(row['third_player_melds']),
-                self.prepare_discards(row['third_player_discards']),
+                self.prepare_melds(row["player_melds"]),
+                self.prepare_discards(row["player_discards"]),
+                int(row["tenpai_player_wind"]),
+                row["tenpai_player_in_riichi"] == 1,
+                self.prepare_melds(row["tenpai_player_melds"]),
+                self.prepare_discards(row["tenpai_player_discards"]),
+                self.prepare_melds(row["second_player_melds"]),
+                self.prepare_discards(row["second_player_discards"]),
+                self.prepare_melds(row["third_player_melds"]),
+                self.prepare_discards(row["third_player_discards"]),
             )
 
             if len(input_data) != self.input_size:
-                print('Internal error: len(input_data) should be {}, but is {}'.format(
-                    self.input_size,
-                    len(input_data)
-                ))
+                print(
+                    "Internal error: len(input_data) should be {}, but is {}".format(
+                        self.input_size, len(input_data)
+                    )
+                )
                 exit(1)
 
             self.input_data.append(input_data)
@@ -201,17 +200,17 @@ class BetaoriClosedHandProtocol(Protocol):
             # we give value 0
             waiting = [0 for _ in range(self.tiles_num // 4)]
 
-            tenpai_discards = self.prepare_discards(row['tenpai_player_discards'])
-            tenpai_melds = self.prepare_melds(row['tenpai_player_melds'])
+            tenpai_discards = self.prepare_discards(row["tenpai_player_discards"])
+            tenpai_melds = self.prepare_melds(row["tenpai_player_melds"])
 
             for x in tenpai_discards:
                 # Here we give hint to network during training: tiles from discard
                 # give output "-1":
-                waiting[x['tile'] // 4] = -1
+                waiting[x["tile"] // 4] = -1
 
-            tenpai_player_waiting = [x for x in row['tenpai_player_waiting'].split(',')]
+            tenpai_player_waiting = [x for x in row["tenpai_player_waiting"].split(",")]
             for x in tenpai_player_waiting:
-                temp = x.split(';')
+                temp = x.split(";")
                 tile = int(temp[0])
 
                 # if cost == 0 it mean that player can't win on this waiting
@@ -222,13 +221,13 @@ class BetaoriClosedHandProtocol(Protocol):
             self.output_data.append(waiting)
 
             # Use it only for visual debugging!
-            tenpai_player_hand = [int(x) for x in row['tenpai_player_hand'].split(',')]
+            tenpai_player_hand = [int(x) for x in row["tenpai_player_hand"].split(",")]
             verification_data = [
                 tenpai_player_hand,
                 tenpai_discards,
                 tenpai_melds,
                 tenpai_player_waiting,
-                [x // 4 for x in player_hand]
+                [x // 4 for x in player_hand],
             ]
 
             self.verification_data.append(verification_data)

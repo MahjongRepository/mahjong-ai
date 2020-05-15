@@ -1,7 +1,4 @@
-
-
 class Discard:
-    
     def __init__(self, tile, is_tsumogiri, after_meld, after_riichi):
         self.tile = tile
         self.is_tsumogiri = is_tsumogiri

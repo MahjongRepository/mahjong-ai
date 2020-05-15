@@ -4,7 +4,6 @@ from base.log_parser import LogParser
 
 
 class BetaoriClosedHandParser(LogParser):
-
     def export_condition(self, player):
         # we want to collect only examples with closed hands
         open_melds = [x.tiles for x in player.melds if x.opened]
@@ -31,7 +30,7 @@ class BetaoriClosedHandParser(LogParser):
             return False
 
         waiting = self.calculate_waiting_costs(player, waiting)
-        atodzuke_waiting = [x for x in waiting if not x['cost']]
+        atodzuke_waiting = [x for x in waiting if not x["cost"]]
 
         # we don't want to analyze atodzuke waiting for now
         if len(atodzuke_waiting) == len(waiting):

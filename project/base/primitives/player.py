@@ -1,10 +1,9 @@
 import copy
 
-from mahjong.constants import EAST, NORTH, WEST, SOUTH
+from mahjong.constants import EAST, NORTH, SOUTH, WEST
 
 
 class Player:
-
     def __init__(self, table, seat, dealer_seat):
         self.table = table
 
@@ -20,7 +19,7 @@ class Player:
         self.scores = 0
 
     def init_hand(self, tiles_string):
-        tiles = [int(x) for x in tiles_string.split(',')]
+        tiles = [int(x) for x in tiles_string.split(",")]
         self.tiles = tiles
 
     def discard_tile(self, discard_obj):
@@ -33,7 +32,6 @@ class Player:
 
     def draw_tile(self, tile):
         self.last_drawn_tile = tile
-
         self.tiles.append(tile)
 
     def add_meld(self, meld):

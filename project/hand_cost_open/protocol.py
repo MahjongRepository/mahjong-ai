@@ -1,7 +1,7 @@
 import itertools
 
-from mahjong.constants import EAST, SOUTH, WEST, NORTH
-from mahjong.utils import plus_dora, is_aka_dora
+from mahjong.constants import EAST, NORTH, SOUTH, WEST
+from mahjong.utils import is_aka_dora, plus_dora
 
 from base.protocol import Protocol
 
@@ -61,11 +61,11 @@ def prepare_closed_hand_input(
     not_visible_dora_on_the_table_input = [0 for _ in range(max_dora_on_the_table)]
 
     for discard_dict in tenpai_player_discards:
-        tile = discard_dict['tile'] // 4
+        tile = discard_dict["tile"] // 4
         tenpai_player_discards_input[tile] = 1
 
     for meld in tenpai_player_melds:
-        tiles = meld['tiles']
+        tiles = meld["tiles"]
         for tile in tiles:
             tile = tile // 4
             tenpai_player_melds_input[tile] = 1
@@ -82,27 +82,22 @@ def prepare_closed_hand_input(
         player_discards,
         tenpai_player_discards,
         second_player_discards,
-        third_player_discards
+        third_player_discards,
     ]
 
     for discards_list in discards:
         for x in discards_list:
             # we will add this tile in melds loop
-            if x['was_taken_for_meld']:
+            if x["was_taken_for_meld"]:
                 continue
 
-            out_tiles_136.append(x['tile'])
+            out_tiles_136.append(x["tile"])
 
-    melds = [
-        player_melds,
-        tenpai_player_melds,
-        second_player_melds,
-        third_player_melds
-    ]
+    melds = [player_melds, tenpai_player_melds, second_player_melds, third_player_melds]
 
     for meld_list in melds:
         for x in meld_list:
-            out_tiles_136.extend(x['tiles'])
+            out_tiles_136.extend(x["tiles"])
 
     out_tiles = [0 for _ in range(tiles_unique)]
     for x in out_tiles_136:
@@ -137,7 +132,7 @@ def prepare_closed_hand_input(
     number_of_dora_in_player_open_melds = 0
     player_melds = tenpai_player_melds
     for meld in player_melds:
-        for tile in meld['tiles']:
+        for tile in meld["tiles"]:
             number_of_dora_in_player_open_melds += plus_dora(tile, dora_indicators)
             if is_aka_dora(tile, True):
                 number_of_dora_in_player_open_melds += 1
@@ -161,17 +156,19 @@ def prepare_closed_hand_input(
         if i + 1 <= not_visible_dora:
             not_visible_dora_on_the_table_input[i] = 1
 
-    return list(itertools.chain(
-        winds_input,
-        not_visible_dora_on_the_table_input,
-        dora_in_player_open_melds_input,
-        tenpai_player_discards_input,
-        tenpai_player_melds_input,
-        out_tiles_0,
-        out_tiles_1,
-        out_tiles_2,
-        out_tiles_3,
-    ))
+    return list(
+        itertools.chain(
+            winds_input,
+            not_visible_dora_on_the_table_input,
+            dora_in_player_open_melds_input,
+            tenpai_player_discards_input,
+            tenpai_player_melds_input,
+            out_tiles_0,
+            out_tiles_1,
+            out_tiles_2,
+            out_tiles_3,
+        )
+    )
 
 
 class OpenHandCostProtocol(Protocol):
@@ -182,76 +179,77 @@ class OpenHandCostProtocol(Protocol):
     output_size = 9
 
     hand_cost_mapping = {
-        '1-30': 0,
-        '1-40': 0,
-        '1-50': 0,
-        '2-25': 1,
-        '2-30': 1,
-        '2-40': 1,
-        '2-50': 1,
-        '3-25': 2,
-        '3-30': 2,
-        '3-40': 2,
-        '3-50': 2,
-        '3-60': 3,
-        '4-25': 3,
-        '4-30': 3,
-        '4-40': 4,
-        '4-50': 4,
-        '5': 4,
-        '6': 5,
-        '7': 5,
-        '8': 6,
-        '9': 6,
-        '10': 6,
-        '11': 7,
-        '12': 7,
-        '13': 8,
+        "1-30": 0,
+        "1-40": 0,
+        "1-50": 0,
+        "2-25": 1,
+        "2-30": 1,
+        "2-40": 1,
+        "2-50": 1,
+        "3-25": 2,
+        "3-30": 2,
+        "3-40": 2,
+        "3-50": 2,
+        "3-60": 3,
+        "4-25": 3,
+        "4-30": 3,
+        "4-40": 4,
+        "4-50": 4,
+        "5": 4,
+        "6": 5,
+        "7": 5,
+        "8": 6,
+        "9": 6,
+        "10": 6,
+        "11": 7,
+        "12": 7,
+        "13": 8,
     }
 
     def parse_new_data(self, raw_data):
         for index, row in raw_data:
-            dora_indicators = [int(x) for x in str(row['dora_indicators']).split(',')]
-            player_hand = [int(x) for x in str(row['player_hand']).split(',')]
+            dora_indicators = [int(x) for x in str(row["dora_indicators"]).split(",")]
+            player_hand = [int(x) for x in str(row["player_hand"]).split(",")]
 
             input_data = prepare_closed_hand_input(
-                int(row['round_wind']),
+                int(row["round_wind"]),
                 dora_indicators,
                 player_hand,
-                self.prepare_melds(row['player_melds']),
-                self.prepare_discards(row['player_discards']),
-                int(row['tenpai_player_wind']),
-                row['tenpai_player_in_riichi'] == 1,
-                self.prepare_melds(row['tenpai_player_melds']),
-                self.prepare_discards(row['tenpai_player_discards']),
-                self.prepare_melds(row['second_player_melds']),
-                self.prepare_discards(row['second_player_discards']),
-                self.prepare_melds(row['third_player_melds']),
-                self.prepare_discards(row['third_player_discards']),
+                self.prepare_melds(row["player_melds"]),
+                self.prepare_discards(row["player_discards"]),
+                int(row["tenpai_player_wind"]),
+                row["tenpai_player_in_riichi"] == 1,
+                self.prepare_melds(row["tenpai_player_melds"]),
+                self.prepare_discards(row["tenpai_player_discards"]),
+                self.prepare_melds(row["second_player_melds"]),
+                self.prepare_discards(row["second_player_discards"]),
+                self.prepare_melds(row["third_player_melds"]),
+                self.prepare_discards(row["third_player_discards"]),
             )
 
             input_data = self.after_input_completed(row, input_data)
 
             if len(input_data) != self.input_size:
-                print('Internal error: len(input_data) should be {}, but is {}'.format(
-                    self.input_size,
-                    len(input_data)
-                ))
+                print(
+                    "Internal error: len(input_data) should be {}, but is {}".format(
+                        self.input_size, len(input_data)
+                    )
+                )
                 exit(1)
 
             self.input_data.append(input_data)
 
-            tenpai_discards = self.prepare_discards(row['tenpai_player_discards'])
-            tenpai_melds = self.prepare_melds(row['tenpai_player_melds'])
+            tenpai_discards = self.prepare_discards(row["tenpai_player_discards"])
+            tenpai_melds = self.prepare_melds(row["tenpai_player_melds"])
 
             # let's find maximum hand cost for now
-            waiting_temp = [x for x in row['tenpai_player_waiting'].split(',')]
+            waiting_temp = [x for x in row["tenpai_player_waiting"].split(",")]
             waiting = None
             waiting_index = 0
             for x in waiting_temp:
-                temp = x.split(';')
+                temp = x.split(";")
 
-                if temp[2] == 'None':
+                if temp[2] == "None":
                     continue
 
                 tile = int(temp[0])
@@ -271,7 +269,7 @@ class OpenHandCostProtocol(Protocol):
             self.output_data.append(waiting_index)
 
             # Use it only for visual debugging!
-            tenpai_player_hand = [int(x) for x in row['tenpai_player_hand'].split(',')]
+            tenpai_player_hand = [int(x) for x in row["tenpai_player_hand"].split(",")]
             verification_data = [
                 tenpai_player_hand,
                 tenpai_discards,
@@ -298,7 +296,6 @@ class OpenHandCostProtocol(Protocol):
         if han >= 5:
             key = str(han)
         else:
-            key = '{}-{}'.format(han, fu)
+            key = "{}-{}".format(han, fu)
 
         return key
-

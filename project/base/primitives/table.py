@@ -1,10 +1,9 @@
-from mahjong.constants import EAST, SOUTH, WEST, NORTH
+from mahjong.constants import EAST, NORTH, SOUTH, WEST
 
 from base.primitives.player import Player
 
 
 class Table:
-
     def __init__(self):
         self.dora_indicators = []
 
