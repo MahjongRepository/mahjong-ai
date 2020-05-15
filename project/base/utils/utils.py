@@ -19,7 +19,7 @@ def load_logs(db_path, limit=None, offset=None):
         else:
             limit = int(limit)
             cursor.execute(
-                "SELECT log_id, log_content FROM logs where is_hirosima = 0 LIMIT ? OFFSET ?;",
+                "SELECT log_id, log_content FROM logs where is_hirosima = 0 ORDER BY log_id LIMIT ? OFFSET ?;",
                 [limit, offset],
             )
             # cursor.execute('SELECT log_id, log_content FROM logs where log_id = "2018050310gm-00a9-0000-786296ec";')
