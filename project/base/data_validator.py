@@ -7,7 +7,7 @@ class DataValidator:
     @staticmethod
     def validate(table, tenpai_player, player, second_player, third_player):
         assert len(tenpai_player.waiting) > 0, logger.error("Tenpai player doesnt have waiting")
-        assert len(table.dora_indicators) <= 4, logger.error("Too many dora indicators")
+        assert len(table.dora_indicators) <= 5, logger.error("Too many dora indicators")
 
         DataValidator._validate_melds(tenpai_player.melds)
         DataValidator._validate_melds(player.melds)
