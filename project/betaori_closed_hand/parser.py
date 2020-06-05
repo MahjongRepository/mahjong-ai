@@ -43,6 +43,5 @@ class BetaoriClosedHandParser(LogParser):
         tenpai_players = [x for x in table.players if x.in_tempai]
 
         for tenpai_player in tenpai_players:
-            need_to_add = player.seat == random.randint(0, 4)
-            if tenpai_player.seat != player.seat and need_to_add:
+            if tenpai_player.seat != player.seat:
                 self.data_to_save.append(self.csv_exporter.export_player(tenpai_player, player))
