@@ -30,7 +30,7 @@ def main():
 
     parser.add_option("--limit", type="int", help="How many logs to load", default=None)
 
-    parser.add_option("--offset", type="int", help="Point from where to load logs", default=0)
+    parser.add_option("--offset", type="int", help="Point from where to load logs", default=None)
 
     opts, _ = parser.parse_args()
 
@@ -54,10 +54,6 @@ def main():
         )
 
     parser = allowed_outputs.get(output_format)
-
-    if os.path.exists(output_file):
-        os.remove(output_file)
-        logger.warning(f"File {output_file} already exists! It was removed")
 
     set_up_logging("parser")
 
@@ -83,7 +79,6 @@ def main():
 
         with open(output_file, "a") as f:
             writer = csv.writer(f)
-            writer.writerow(CSVExporter.header())
             for record in records:
                 writer.writerow(record)
 
@@ -91,9 +86,9 @@ def main():
         bar.set_description(f"Samples: {samples_count}")
 
     logger.info("Shuffle output file")
-    # subprocess.run(
-    #     "shuf -o {} < {}".format(os.path.abspath(output_file), os.path.abspath(output_file)), shell=True,
-    # )
+    subprocess.run(
+        "shuf -o {} < {}".format(os.path.abspath(output_file), os.path.abspath(output_file)), shell=True,
+    )
 
     logger.info("End")
     logger.info("Total samples:  {}".format(samples_count))
