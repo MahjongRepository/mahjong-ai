@@ -1,16 +1,12 @@
-import json
+import csv
 import logging
 import os
-import pickle
 import shutil
 
-import numpy as np
+import tensorflow
+import tensorflow_io as tfio
 from keras import layers, models
-from keras.callbacks import Callback
 from keras.models import load_model
-from keras.utils import HDF5Matrix
-
-from base.results_visualization import show_graphs
 
 logger = logging.getLogger("logs")
 
@@ -28,7 +24,13 @@ class Model:
     output_size = None
 
     def __init__(
-        self, input_directory_name, data_path, print_predictions, epochs, need_visualize, load_epoch,
+        self,
+        input_directory_name,
+        data_path,
+        print_predictions,
+        epochs,
+        need_visualize,
+        load_epoch,
     ):
         self.data_path = data_path
         self.print_predictions = print_predictions
@@ -37,11 +39,7 @@ class Model:
 
         self.epochs = epochs
 
-        self.graphs_data = {
-            "first": [],
-            "second": [],
-            "third": [],
-        }
+        self.after_epoch_attrs = []
 
         root_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "..", "models")
         if not os.path.exists(root_dir):
@@ -51,6 +49,11 @@ class Model:
         self.remove_model()
 
     def run(self):
+        devices = tensorflow.config.list_physical_devices("GPU")
+        assert len(devices) == 1, devices
+        assert tensorflow.test.is_built_with_cuda()
+
+        logger.info(f"Devices: {devices}")
         logger.info("Epochs: {}".format(self.epochs))
         logger.info("Batch size: {}".format(self.batch_size))
         logger.info("Model attributes: {}".format(self.model_attributes))
@@ -64,7 +67,7 @@ class Model:
             data_files_temp = os.listdir(self.data_path)
             data_files = []
             for f in data_files_temp:
-                if not f.endswith(".h5"):
+                if not f.endswith(".hkl"):
                     continue
 
                 if f.startswith("test_"):
@@ -85,19 +88,20 @@ class Model:
                     logger.info("Processing {}...".format(train_file))
                     h5_file_path = os.path.join(self.data_path, train_file)
 
-                    train_input = HDF5Matrix(h5_file_path, "input_data")
-                    train_output = HDF5Matrix(h5_file_path, "output_data")
+                    x_train = tfio.IODataset.from_hdf5(h5_file_path, dataset="/input_data")
+                    y_train = tfio.IODataset.from_hdf5(h5_file_path, dataset="/output_data")
 
-                    logger.info("Train data size = {}".format(train_input.size / self.input_size))
+                    train = (
+                        tensorflow.data.Dataset.zip((x_train, y_train))
+                        .batch(self.batch_size, drop_remainder=True)
+                        .prefetch(tensorflow.data.experimental.AUTOTUNE)
+                    )
 
                     model.fit(
-                        train_input,
-                        train_output,
-                        # we need it to work with md5 data
-                        shuffle="batch",
+                        train,
+                        shuffle=True,
                         epochs=1,
                         batch_size=self.batch_size,
-                        callbacks=[LoggingCallback(self.graphs_data)],
                     )
 
                 logger.info("Predictions after epoch #{}".format(n_epoch))
@@ -116,15 +120,18 @@ class Model:
                     model_file = f
 
             model = load_model(os.path.join(self.model_directory, model_file))
-            self.calculate_predictions(model, None)
 
-        if self.graphs_data.get("first"):
+        logger.info("Calculating predictions...")
+        self.calculate_predictions(model, None)
+
+        if self.after_epoch_attrs:
             self.print_best_result()
-
-            logger.info(json.dumps(self.graphs_data))
-
-            if self.need_visualize:
-                show_graphs(self.graphs_data)
+            csv_path = os.path.join(self.model_directory, "results.csv")
+            with open(csv_path, "w") as csv_file:
+                writer = csv.DictWriter(csv_file, fieldnames=self.after_epoch_attrs[0].keys())
+                writer.writeheader()
+                for data in self.after_epoch_attrs:
+                    writer.writerow(data)
 
     def remove_model(self):
         if os.path.exists(self.model_directory) and self.load_epoch == 0:
@@ -133,12 +140,12 @@ class Model:
 
     def create_and_compile_model(self):
         model = models.Sequential()
+
         model.add(layers.Dense(self.units, activation="relu", input_shape=(self.input_size,)))
         model.add(layers.Dense(self.units, activation="relu"))
         model.add(layers.Dense(self.output_size, activation=self.output))
 
         model.compile(**self.model_attributes)
-
         return model
 
     def calculate_predictions(self, model, epoch):
@@ -146,34 +153,3 @@ class Model:
 
     def print_best_result(self):
         pass
-
-    def tiles_34_to_sting_unsorted(self, tiles):
-        string = ""
-        for tile in tiles:
-            if tile < 9:
-                string += str(tile + 1) + "m"
-            elif 9 <= tile < 18:
-                string += str(tile - 9 + 1) + "p"
-            elif 18 <= tile < 27:
-                string += str(tile - 18 + 1) + "s"
-            else:
-                string += str(tile - 27 + 1) + "z"
-
-        return string
-
-    def tiles_136_to_sting_unsorted(self, tiles):
-        return self.tiles_34_to_sting_unsorted([x // 4 for x in tiles])
-
-
-class LoggingCallback(Callback):
-    def __init__(self, graphs_data):
-        super(LoggingCallback, self).__init__()
-        self.graphs_data = graphs_data
-
-    def on_epoch_end(self, epoch, logs=None):
-        msg = "{}".format(", ".join("%s: %f" % (k, v) for k, v in logs.items()))
-        logger.info(msg)
-
-        n_epoch = len(self.graphs_data["third"]) + 1
-        logs["epoch"] = n_epoch
-        self.graphs_data["third"].append(logs)

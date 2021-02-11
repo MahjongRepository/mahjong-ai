@@ -4,5 +4,6 @@ env
 data
 logs
 processed_data
+models
 
 *.h5

@@ -1,3 +1,3 @@
 format:
+	isort project/*
 	black project
-	isort -rc project
